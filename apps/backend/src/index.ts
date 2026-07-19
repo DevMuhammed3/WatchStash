@@ -47,9 +47,22 @@ app.use('/api/auth', authLimiter);
 app.use(express.json({ limit: '10kb' }));
 
 app.use((req, _res, next) => {
-  (req as any).body = mongoSanitize(req.body);
-  (req as any).query = mongoSanitize(req.query);
-  (req as any).params = mongoSanitize(req.params);
+  if (req.body) {
+    (req as any).body = mongoSanitize(req.body);
+  }
+  
+  if (req.query) {
+    const cleanQuery = mongoSanitize(req.query);
+    Object.keys(req.query).forEach(key => delete req.query[key]);
+    Object.assign(req.query, cleanQuery);
+  }
+
+  if (req.params) {
+    const cleanParams = mongoSanitize(req.params);
+    Object.keys(req.params).forEach(key => delete req.params[key]);
+    Object.assign(req.params, cleanParams);
+  }
+  
   next();
 });
 
