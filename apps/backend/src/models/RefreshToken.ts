@@ -29,9 +29,10 @@ const refreshTokenSchema = new Schema<IRefreshToken>(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+refreshTokenSchema.index({ user: 1, revoked: 1 });
 
 export const RefreshToken = model<IRefreshToken>('RefreshToken', refreshTokenSchema);

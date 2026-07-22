@@ -31,6 +31,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@watchstash/types": "workspace:*",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "express": "^5.2.1",
