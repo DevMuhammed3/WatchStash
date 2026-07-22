@@ -2,7 +2,9 @@ import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/AppError';
 import logger from '../config/logger';
 
-export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction) {
+export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction) {
+  const reqId = req.headers['x-request-id'];
+
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
       status: 'error',
@@ -38,7 +40,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
     return;
   }
 
-  logger.error({ err }, 'Unhandled error');
+  logger.error({ err, reqId, method: req.method, url: req.originalUrl }, 'Unhandled error');
   res.status(500).json({
     status: 'error',
     message: 'Internal server error',

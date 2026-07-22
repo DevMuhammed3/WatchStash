@@ -4,6 +4,9 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User';
 import { RefreshToken } from '../models/RefreshToken';
+import { Follow } from '../models/Follow';
+import { Movie } from '../models/Movie';
+import { StashItem } from '../models/StashItem';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/watchstash_test';
 const JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
@@ -18,6 +21,9 @@ beforeAll(async () => {
 afterAll(async () => {
   await User.deleteMany({});
   await RefreshToken.deleteMany({});
+  await Follow.deleteMany({});
+  await Movie.deleteMany({});
+  await StashItem.deleteMany({});
   await mongoose.connection.close();
 });
 
@@ -27,7 +33,7 @@ describe('User Model', () => {
       username: 'testuser',
       displayName: 'Test User',
       email: 'test@example.com',
-      passwordHash: await bcrypt.hash('password123', 10),
+      passwordHash: await bcrypt.hash('Password1', 10),
       hasPassword: true,
     });
 
@@ -35,6 +41,8 @@ describe('User Model', () => {
     expect(user.username).toBe('testuser');
     expect(user.email).toBe('test@example.com');
     expect(user.hasPassword).toBe(true);
+    expect(user.followersCount).toBe(0);
+    expect(user.followingCount).toBe(0);
   });
 
   test('should fail to create user without required fields', async () => {
@@ -126,5 +134,47 @@ describe('JWT Utils', () => {
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '15m' });
 
     expect(() => jwt.verify(token, 'wrong_secret')).toThrow();
+  });
+});
+
+describe('Follow Model', () => {
+  test('should create a follow relationship', async () => {
+    const follower = await User.create({
+      username: 'follower1',
+      displayName: 'Follower One',
+      email: 'follower1@example.com',
+      hasPassword: false,
+    });
+
+    const following = await User.create({
+      username: 'following1',
+      displayName: 'Following One',
+      email: 'following1@example.com',
+      hasPassword: false,
+    });
+
+    const follow = await Follow.create({
+      follower: follower._id,
+      following: following._id,
+    });
+
+    expect(follow._id).toBeDefined();
+    expect(follow.follower.toString()).toBe((follower._id as mongoose.Types.ObjectId).toString());
+    expect(follow.following.toString()).toBe((following._id as mongoose.Types.ObjectId).toString());
+  });
+
+  test('should enforce unique follow pairs', async () => {
+    const follower = await User.findOne({ username: 'follower1' });
+    const following = await User.findOne({ username: 'following1' });
+
+    try {
+      await Follow.create({
+        follower: follower!._id,
+        following: following!._id,
+      });
+      expect(true).toBe(false);
+    } catch (err) {
+      expect((err as any).code).toBe(11000);
+    }
   });
 });
