@@ -8,6 +8,7 @@ import pinoHttp from 'pino-http';
 import mongoose from 'mongoose';
 import { connectDB } from './config/db';
 import authRoutes from './routes/auth';
+import movieRoutes from './routes/movie';
 import { errorHandler } from './middleware/errorHandler';
 import logger from './config/logger';
 import { requestId } from './middleware/requestId';
@@ -21,10 +22,12 @@ app.use(requestId);
 app.use(pinoHttp({ logger }));
 app.use(helmet());
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || false,
+    credentials: true,
+  }),
+);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -50,24 +53,18 @@ app.use((req, _res, next) => {
   if (req.body) {
     (req as any).body = mongoSanitize(req.body);
   }
-  
+
   if (req.query) {
     const cleanQuery = mongoSanitize(req.query);
-    Object.keys(req.query).forEach(key => delete req.query[key]);
+    Object.keys(req.query).forEach((key) => delete req.query[key]);
     Object.assign(req.query, cleanQuery);
   }
 
-  if (req.params) {
-    const cleanParams = mongoSanitize(req.params);
-    Object.keys(req.params).forEach(key => delete req.params[key]);
-    Object.assign(req.params, cleanParams);
-  }
-  
   next();
 });
 
 app.get('/', (_req, res) => {
-  res.json({ message: 'WatchStash API is up and running!' });
+  res.json({ status: 'success', message: 'WatchStash API is up and running!' });
 });
 
 app.get('/health', (_req, res) => {
@@ -82,6 +79,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/movies', movieRoutes);
 
 app.use(errorHandler);
 

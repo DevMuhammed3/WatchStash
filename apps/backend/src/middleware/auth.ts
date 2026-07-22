@@ -1,15 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import { AppError } from '../utils/AppError';
-
-const JWT_SECRET = (() => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    console.error('FATAL: JWT_SECRET is not defined in environment variables');
-    process.exit(1);
-  }
-  return secret;
-})();
+import { verifyAccessToken } from '../config/jwt';
 
 export interface AuthPayload {
   id: string;
@@ -34,7 +25,7 @@ export function authenticate(req: Request, _res: Response, next: NextFunction) {
   const token = header.split(' ')[1]!;
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as unknown as AuthPayload;
+    const decoded = verifyAccessToken(token);
     req.user = { id: decoded.id };
     next();
   } catch (err) {
