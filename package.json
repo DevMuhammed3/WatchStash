@@ -3,8 +3,16 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "workspaces": ["packages/types", "packages/ui", "apps/frontend", "apps/backend"],
+  "scripts": {
+    "postinstall": "mkdir -p node_modules/@watchstash && ln -sf ../../packages/types node_modules/@watchstash/types && ln -sf ../../packages/ui node_modules/@watchstash/ui",
+    "dev": "concurrently -n backend,frontend -c blue,green \"bun run dev:backend\" \"bun run dev:frontend\"",
+    "dev:backend": "bun --watch apps/backend/src/index.ts",
+    "dev:frontend": "bun run --cwd apps/frontend dev"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "concurrently": "^9.1.0"
   },
   "peerDependencies": {
     "typescript": "^5"
