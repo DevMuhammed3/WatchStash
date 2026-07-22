@@ -1,17 +1,14 @@
 import { Schema, model, Document } from 'mongoose';
+import type { MediaType, MediaStatus, Progress } from '@watchstash/types';
 
 export interface IStashItem extends Document {
   userId: Schema.Types.ObjectId;
   title: string;
-  type: 'movie' | 'series' | 'anime';
-  status: 'watching' | 'completed' | 'on_hold' | 'plan_to_watch';
+  type: MediaType;
+  status: MediaStatus;
   rating?: number;
   review?: string;
-  progress: {
-    currentEpisode: number;
-    totalEpisodes?: number;
-    currentSeason: number;
-  };
+  progress: Progress;
   posterUrl?: string;
   externalId?: string;
   createdAt: Date;
@@ -72,7 +69,7 @@ const stashItemSchema = new Schema<IStashItem>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 stashItemSchema.index({ userId: 1 });
