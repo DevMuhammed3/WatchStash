@@ -5,19 +5,14 @@ import { RefreshToken } from '../models/RefreshToken';
 import { AppError } from '../utils/AppError';
 import { asyncHandler } from '../utils/asyncHandler';
 import type { IUser } from '../models/User';
-import {
-  generateAccessToken,
-  generateRefreshToken,
-  verifyRefreshToken,
-  decodeRefreshTokenExpiry,
-  hashToken,
-} from '../config/jwt';
+import { verifyRefreshToken, hashToken } from '../config/jwt';
+import { issueTokens } from '../utils/issueTokens';
 
 const BCRYPT_ROUNDS = 12;
 
 function userPayload(user: IUser) {
   return {
-    id: user._id,
+    _id: user._id,
     username: user.username,
     displayName: user.displayName,
     email: user.email,
@@ -49,15 +44,7 @@ export const Register = asyncHandler(async (req: Request, res: Response) => {
     hasPassword: true,
   });
 
-  const accessToken = generateAccessToken(user._id as string);
-  const refreshToken = generateRefreshToken(user._id as string);
-  const expiresAt = decodeRefreshTokenExpiry(refreshToken);
-
-  await RefreshToken.create({
-    token: hashToken(refreshToken),
-    user: user._id,
-    expiresAt,
-  });
+  const { accessToken, refreshToken } = await issueTokens(user._id);
 
   res.status(201).json({
     status: 'success',
@@ -85,15 +72,7 @@ export const Login = asyncHandler(async (req: Request, res: Response) => {
 
   await RefreshToken.updateMany({ user: user._id, revoked: false }, { revoked: true });
 
-  const accessToken = generateAccessToken(user._id as string);
-  const refreshToken = generateRefreshToken(user._id as string);
-  const expiresAt = decodeRefreshTokenExpiry(refreshToken);
-
-  await RefreshToken.create({
-    token: hashToken(refreshToken),
-    user: user._id,
-    expiresAt,
-  });
+  const { accessToken, refreshToken } = await issueTokens(user._id);
 
   res.status(200).json({
     status: 'success',
@@ -130,19 +109,11 @@ export const Refresh = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('User no longer exists', 401);
   }
 
-  const newAccessToken = generateAccessToken(decoded.id);
-  const newRefreshToken = generateRefreshToken(decoded.id);
-  const expiresAt = decodeRefreshTokenExpiry(newRefreshToken);
-
-  await RefreshToken.create({
-    token: hashToken(newRefreshToken),
-    user: decoded.id,
-    expiresAt,
-  });
+  const { accessToken, refreshToken: newRefreshToken } = await issueTokens(decoded.id);
 
   res.status(200).json({
     status: 'success',
-    accessToken: newAccessToken,
+    accessToken,
     refreshToken: newRefreshToken,
   });
 });
