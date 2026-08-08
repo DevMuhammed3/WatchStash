@@ -1,5 +1,9 @@
 export type MediaType = "movie" | "series" | "anime";
 
+export type OAuthProvider = "google" | "github" | "facebook" | "twitter";
+
+export type OAuthProviderIdKey = "googleId" | "githubId" | "facebookId" | "twitterId";
+
 export type MediaStatus = "watching" | "completed" | "on_hold" | "plan_to_watch";
 
 export interface Progress {
