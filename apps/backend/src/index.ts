@@ -8,6 +8,7 @@ import pinoHttp from 'pino-http';
 import mongoose from 'mongoose';
 import { connectDB } from './config/db';
 import authRoutes from './routes/auth';
+import oauthRoutes from './routes/oauth';
 import movieRoutes from './routes/movie';
 import { errorHandler } from './middleware/errorHandler';
 import logger from './config/logger';
@@ -79,6 +80,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/oauth', oauthRoutes);
 app.use('/api/movies', movieRoutes);
 
 app.use(errorHandler);

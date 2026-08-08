@@ -1,10 +1,11 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Types } from 'mongoose';
 import { Movie } from './Movie';
 import { StashItem } from './StashItem';
 import { RefreshToken } from './RefreshToken';
 import { Follow } from './Follow';
 
 export interface IUser extends Document {
+  _id: Types.ObjectId;
   username: string;
   displayName: string;
   email: string;
