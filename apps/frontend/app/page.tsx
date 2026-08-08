@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -14,6 +15,7 @@ import { Film } from "lucide-react";
 import { FilterBar } from "@/components/FilterBar";
 import { StatusSection } from "@/components/StatusSection";
 import { MediaDetailModal } from "@/components/MediaDetailModal";
+import { useAuth } from "@/lib/auth-context";
 import type { MediaItem, SortOption, MediaStatus } from "@watchstash/types";
 
 const MOCK_ITEMS: MediaItem[] = [
@@ -43,6 +45,9 @@ const STATUS_ORDER: MediaStatus[] = [
 ];
 
 export default function Home() {
+  const { user, status, logout } = useAuth();
+  const router = useRouter();
+
   const [items, setItems] = useState(MOCK_ITEMS);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("recent");
@@ -52,6 +57,12 @@ export default function Home() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login");
+    }
+  }, [status, router]);
 
   const filtered = useMemo(() => {
     let result = [...items];
@@ -86,6 +97,14 @@ export default function Home() {
     }
     return map;
   }, [filtered]);
+
+  if (status !== "authenticated") {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <p className="text-sm text-muted">Loading your stash…</p>
+      </main>
+    );
+  }
 
   function handleStatusChange(id: string, status: MediaStatus) {
     setItems((prev) =>
@@ -144,11 +163,26 @@ export default function Home() {
     >
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8 border-b border-border pb-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight text-primary">
-              WatchStash
-            </h1>
-            <span className="h-1 w-10 rounded-full bg-accent" />
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold tracking-tight text-primary">
+                WatchStash
+              </h1>
+              <span className="h-1 w-10 rounded-full bg-accent" />
+            </div>
+            <div className="flex items-center gap-3">
+              {user && (
+                <span className="hidden text-sm text-secondary sm:inline">
+                  {user.displayName}
+                </span>
+              )}
+              <button
+                onClick={() => logout()}
+                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-border-hover hover:text-primary"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
           <p className="mt-2 text-sm text-muted">
             Your personal media collection
