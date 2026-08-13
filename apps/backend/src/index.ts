@@ -15,7 +15,9 @@ import logger from './config/logger';
 import { requestId } from './middleware/requestId';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
+
+app.set("trust proxy", 1);
 
 connectDB();
 
@@ -85,7 +87,7 @@ app.use('/api/movies', movieRoutes);
 
 app.use(errorHandler);
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '127.0.0.1', () => {
   logger.info(`WatchStash Backend running on http://localhost:${PORT}`);
 });
 

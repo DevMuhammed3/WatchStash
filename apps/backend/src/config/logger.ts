@@ -6,6 +6,12 @@ const logger = pino({
     process.env.NODE_ENV !== 'production'
       ? { target: 'pino-pretty', options: { colorize: true } }
       : undefined,
+  redact: {
+    paths:
+    ['req.headers.authorization',
+      'req.headers.cookie'
+    ]
+  }
 });
 
 export default logger;
