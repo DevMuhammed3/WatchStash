@@ -17,6 +17,12 @@ import { requestId } from './middleware/requestId';
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 
+function checkSetup(){
+  if(process.env.OAUTH_STATE_SECRET === undefined)  
+    throw new Error("OAUTH_STATE_SECRET is missing! Add it to your .env file")
+}
+checkSetup()
+
 app.set("trust proxy", 1);
 
 connectDB();

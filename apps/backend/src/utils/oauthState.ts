@@ -3,9 +3,10 @@ import crypto from 'crypto';
 const STATE_TTL_MS = 10 * 60 * 1000;
 
 function getStateSecret(): string {
-  return (
-    process.env.OAUTH_STATE_SECRET || process.env.JWT_REFRESH_SECRET || 'insecure_state_secret'
-  );
+  if(process.env.OAUTH_STATE_SECRET === undefined){
+      throw Error("OAUTH_STATE_SECRET is missing!");
+  }
+  return process.env.OAUTH_STATE_SECRET
 }
 
 interface StatePayload {
