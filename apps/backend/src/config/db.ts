@@ -4,7 +4,12 @@ import logger from './logger';
 
 export const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/watchstash';
+
+    if(process.env.MONGODB_URI === undefined){
+      throw(Error("MONGODB_URI is missing"))
+    }
+
+    const mongoURI = process.env.MONGODB_URI;
 
     const conn = await mongoose.connect(mongoURI);
 
