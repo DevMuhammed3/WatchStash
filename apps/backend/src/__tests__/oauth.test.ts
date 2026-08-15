@@ -12,6 +12,7 @@ const MONGODB_URI =
 
 beforeAll(async () => {
   process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
+  process.env.OAUTH_STATE_SECRET = process.env.OAUTH_STATE_SECRET || 'test_oauth_state_secret';
   process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test_refresh_secret';
   await mongoose.connect(MONGODB_URI);
 });
@@ -45,7 +46,7 @@ describe('oauthState', () => {
       JSON.stringify({ p: 'facebook', iat: Date.now() - 11 * 60 * 1000 }),
     ).toString('base64url');
     const sig = crypto
-      .createHmac('sha256', process.env.JWT_REFRESH_SECRET || 'test_refresh_secret')
+      .createHmac('sha256', process.env.OAUTH_STATE_SECRET!)
       .update(encoded)
       .digest('base64url');
     expect(verifyState(`${encoded}.${sig}`, 'facebook')).toBe(false);
