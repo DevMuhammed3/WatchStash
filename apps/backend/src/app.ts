@@ -1,0 +1,88 @@
+import  express  from "express";
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'mongo-sanitize';
+import pinoHttp from 'pino-http';
+import mongoose from 'mongoose';
+import authRoutes from './routes/auth';
+import oauthRoutes from './routes/oauth';
+import movieRoutes from './routes/movie';
+import { errorHandler } from './middleware/errorHandler';
+import logger from './config/logger';
+import { requestId } from './middleware/requestId';
+
+export default function App() {
+  const app = express();
+app.set("trust proxy", 1);
+
+
+app.use(requestId);
+app.use(pinoHttp({ logger }));
+app.use(helmet());
+
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || false,
+    credentials: true,
+  }),
+);
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { status: 'error', message: 'Too many requests, please try again later' },
+});
+app.use(limiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { status: 'error', message: 'Too many auth attempts, please try again later' },
+});
+app.use('/api/auth', authLimiter);
+
+app.use(express.json({ limit: '10kb' }));
+
+app.use((req, _res, next) => {
+  if (req.body) {
+    (req as any).body = mongoSanitize(req.body);
+  }
+
+  if (req.query) {
+    const cleanQuery = mongoSanitize(req.query);
+    Object.keys(req.query).forEach((key) => delete req.query[key]);
+    Object.assign(req.query, cleanQuery);
+  }
+
+  next();
+});
+
+app.get('/', (_req, res) => {
+  res.status(200).json({ message: 'WatchStash API is up and running!'});
+});
+
+app.get('/health', (_req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const isHealthy = dbState === 1;
+
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'ok' : 'degraded',
+    mongodb: isHealthy ? 'connected' : 'disconnected',
+    uptime: process.uptime(),
+  });
+});
+
+app.use('/api/auth', authRoutes);
+app.use('/api/auth/oauth', oauthRoutes);
+app.use('/api/movies', movieRoutes);
+
+app.use(errorHandler);
+
+return app;
+}
+
