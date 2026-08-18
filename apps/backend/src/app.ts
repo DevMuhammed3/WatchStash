@@ -28,6 +28,18 @@ app.use(
   }),
 );
 
+app.get('/health', (_req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const isHealthy = dbState === 1;
+
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'ok' : 'degraded',
+    mongodb: isHealthy ? 'connected' : 'disconnected',
+    uptime: process.uptime(),
+  });
+});
+
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -63,19 +75,12 @@ app.use((req, _res, next) => {
 });
 
 app.get('/', (_req, res) => {
-  res.status(200).json({ message: 'WatchStash API is up and running!'});
-});
-
-app.get('/health', (_req, res) => {
-  const dbState = mongoose.connection.readyState;
-  const isHealthy = dbState === 1;
-
-  res.status(isHealthy ? 200 : 503).json({
-    status: isHealthy ? 'ok' : 'degraded',
-    mongodb: isHealthy ? 'connected' : 'disconnected',
-    uptime: process.uptime(),
+  res.status(200).json({
+    status: 'success',
+    message: 'WatchStash API is up and running!',
   });
 });
+
 
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/oauth', oauthRoutes);
