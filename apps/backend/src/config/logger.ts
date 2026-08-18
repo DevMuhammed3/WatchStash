@@ -9,7 +9,9 @@ const logger = pino({
   redact: {
     paths:
     ['req.headers.authorization',
-      'req.headers.cookie'
+      'req.headers.cookie',
+      'req.query.code',
+      'req.query.state'
     ]
   }
 });
