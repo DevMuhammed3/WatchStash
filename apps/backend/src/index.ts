@@ -1,16 +1,15 @@
 // apps/backend/src/index.ts
 import App from "./app"
-// import express from 'express';
 import mongoose from 'mongoose';
 import logger from './config/logger';
 import envValuaCheck from './config/env';
 import { connectDB } from './config/db';
 
 
-const app = App();
-const PORT = Number(process.env.PORT) || 3001;
+const env = envValuaCheck.parse(process.env);
 
-envValuaCheck.parse(process.env);
+const app = App();
+const PORT = env.PORT;
 
 await connectDB();
 

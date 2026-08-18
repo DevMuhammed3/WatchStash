@@ -13,6 +13,7 @@ import {
   buildAuthorizeUrl,
   exchangeCodeForProfile,
 } from '../config/oauth';
+import envValuaCheck from '../config/env';
 
 function buildRedirectUri(req: Request, provider: string): string {
   return `${req.protocol}://${req.get('host')}/api/auth/oauth/${provider}/callback`;
@@ -89,11 +90,8 @@ export const Callback = asyncHandler(async (req: Request, res: Response) => {
   const user = await findOrCreateUserByOAuth(provider as OAuthProvider, profile);
   const { accessToken, refreshToken } = await issueTokens(user._id);
 
-  const frontendOrigin = (
-    process.env.FRONTEND_ORIGIN ||
-    process.env.CORS_ORIGIN ||
-    'http://localhost:3000'
-  ).replace(/\/+$/, '');
+  const env = envValuaCheck.parse(process.env);
+  const frontendOrigin = env.FRONTEND_ORIGIN.replace(/\/+$/, '');
 
   res.redirect(
     `${frontendOrigin}/auth/callback#access_token=${accessToken}&refresh_token=${refreshToken}`,
