@@ -12,7 +12,7 @@ const PORT = Number(process.env.PORT) || 3001;
 
 envValuaCheck.parse(process.env);
 
-connectDB();
+await connectDB();
 
 const server = app.listen(PORT, '127.0.0.1', () => {
   logger.info(`WatchStash Backend running on http://localhost:${PORT}`);
