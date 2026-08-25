@@ -5,8 +5,8 @@ const envValuaCheck = z.object({
   MONGODB_URI: z.string().min(1),
   JWT_SECRET: z.string().min(1),
   JWT_REFRESH_SECRET: z.string().min(1),
-  CORS_ORIGIN: z.string().min(1),
-  FRONTEND_ORIGIN: z.string().min(1),
+  CORS_ORIGIN: z.url(),
+  FRONTEND_ORIGIN: z.url(),
   OAUTH_STATE_SECRET: z.string().min(1),
 });
 
