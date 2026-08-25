@@ -75,7 +75,17 @@ export const Callback = asyncHandler(async (req: Request, res: Response) => {
   const provider = req.params.provider as string;
   getOAuthProvider(provider);
 
-  const { code, state } = req.query as { code?: string; state?: string };
+  const { code, state, error } = req.query as {
+    code?: string;
+    state?: string;
+    error?: string;
+  };
+
+  if (error) {
+    logger.warn(`OAuth aborted by provider: provider=${provider} error=${error}`);
+    throw new AppError('OAuth sign-in was cancelled or failed. Please try again.', 400);
+  }
+
   if (!code || !state) {
     logger.warn(`OAuth callback rejected: provider=${provider} reason=missing_params`);
     throw new AppError('Invalid OAuth callback (missing_params)', 400);
