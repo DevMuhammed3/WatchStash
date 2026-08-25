@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
-import { Movie } from '../models/Movie';
-import { AppError } from '../utils/AppError';
-import { asyncHandler } from '../utils/asyncHandler';
+import { Movie } from '../models/Movie.js';
+import { AppError } from '../utils/AppError.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;

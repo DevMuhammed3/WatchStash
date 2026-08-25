@@ -1,6 +1,7 @@
 {
   "name": "backend",
   "module": "index.ts",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",

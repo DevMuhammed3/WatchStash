@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import App from '../src/app';
-import envValuaCheck from '../src/config/env';
-import logger from '../src/config/logger';
-import { connectDB } from '../src/config/db';
+import App from '../src/app.js';
+import envValuaCheck from '../src/config/env.js';
+import logger from '../src/config/logger.js';
+import { connectDB } from '../src/config/db.js';
 
 envValuaCheck.parse(process.env);
 

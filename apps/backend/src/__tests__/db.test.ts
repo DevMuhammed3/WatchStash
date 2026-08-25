@@ -1,6 +1,6 @@
 import { describe, test, expect, afterAll, beforeAll } from 'bun:test';
 import mongoose from 'mongoose';
-import { connectDB } from '../config/db';
+import { connectDB } from '../config/db.js';
 
 const MONGODB_URI =
   process.env.OAUTH_TEST_MONGODB_URI || 'mongodb://localhost:27017/watchstash_oauth_test';

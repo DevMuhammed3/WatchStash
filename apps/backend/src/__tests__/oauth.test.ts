@@ -1,11 +1,11 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import mongoose from 'mongoose';
-import { User } from '../models/User';
-import { RefreshToken } from '../models/RefreshToken';
-import { generateState, verifyState, readState } from '../utils/oauthState';
-import { slugifyUsername, findUniqueUsername } from '../utils/uniqueUsername';
-import { findOrCreateUserByOAuth } from '../controllers/oauth';
-import type { OAuthProfile } from '../config/oauth';
+import { User } from '../models/User.js';
+import { RefreshToken } from '../models/RefreshToken.js';
+import { generateState, verifyState, readState } from '../utils/oauthState.js';
+import { slugifyUsername, findUniqueUsername } from '../utils/uniqueUsername.js';
+import { findOrCreateUserByOAuth } from '../controllers/oauth.js';
+import type { OAuthProfile } from '../config/oauth.js';
 
 const MONGODB_URI =
   process.env.OAUTH_TEST_MONGODB_URI || 'mongodb://localhost:27017/watchstash_oauth_test';

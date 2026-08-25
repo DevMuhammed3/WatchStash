@@ -2,11 +2,11 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { User } from '../models/User';
-import { RefreshToken } from '../models/RefreshToken';
-import { Follow } from '../models/Follow';
-import { Movie } from '../models/Movie';
-import { StashItem } from '../models/StashItem';
+import { User } from '../models/User.js';
+import { RefreshToken } from '../models/RefreshToken.js';
+import { Follow } from '../models/Follow.js';
+import { Movie } from '../models/Movie.js';
+import { StashItem } from '../models/StashItem.js';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/watchstash_test';
 const JWT_SECRET = process.env.JWT_SECRET || 'test_secret';

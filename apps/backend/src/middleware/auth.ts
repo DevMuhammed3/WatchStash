@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import { AppError } from '../utils/AppError';
-import { verifyAccessToken } from '../config/jwt';
+import { AppError } from '../utils/AppError.js';
+import { verifyAccessToken } from '../config/jwt.js';
 
 export interface AuthPayload {
   id: string;
