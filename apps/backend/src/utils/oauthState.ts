@@ -44,10 +44,19 @@ export function verifyState(state: string, provider: string): boolean {
   return readState(state, provider) !== null;
 }
 
-export function readState(state: string, provider: string): { cv?: string } | null {
+export type StateRejectionReason =
+  | 'malformed'
+  | 'invalid_signature'
+  | 'provider_mismatch'
+  | 'expired';
+
+export function diagnoseState(
+  state: string,
+  provider: string,
+): { ok: true; cv?: string } | { ok: false; reason: StateRejectionReason } {
   const [encoded, signature] = state.split('.');
   if (!encoded || !signature) {
-    return null;
+    return { ok: false, reason: 'malformed' };
   }
 
   const expected = sign(encoded);
@@ -57,19 +66,24 @@ export function readState(state: string, provider: string): { cv?: string } | nu
     signatureBuffer.length !== expectedBuffer.length ||
     !crypto.timingSafeEqual(signatureBuffer, expectedBuffer)
   ) {
-    return null;
+    return { ok: false, reason: 'invalid_signature' };
   }
 
   const payload = decode(encoded);
   if (!payload || payload.p !== provider) {
-    return null;
+    return { ok: false, reason: 'provider_mismatch' };
   }
 
   if (Date.now() - payload.iat > STATE_TTL_MS) {
-    return null;
+    return { ok: false, reason: 'expired' };
   }
 
-  return { cv: payload.cv };
+  return { ok: true, cv: payload.cv };
+}
+
+export function readState(state: string, provider: string): { cv?: string } | null {
+  const verdict = diagnoseState(state, provider);
+  return verdict.ok ? { cv: verdict.cv } : null;
 }
 
 export function generateCodeVerifier(): string {
