@@ -17,7 +17,8 @@ function respondJson(res: ServerResponse, status: number, body: unknown): void {
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const rawUrl = req.url ?? '/';
+  const url = new URL(rawUrl, `http://${req.headers.host ?? 'localhost'}`);
 
   if (url.searchParams.has('__probe')) {
     const secret = process.env.OAUTH_STATE_SECRET ?? '';
@@ -29,6 +30,14 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     });
     return;
   }
+
+  Object.defineProperty(req, 'query', {
+    get() {
+      const u = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+      return Object.fromEntries(u.searchParams);
+    },
+    configurable: true,
+  });
 
   try {
     await connectDB();

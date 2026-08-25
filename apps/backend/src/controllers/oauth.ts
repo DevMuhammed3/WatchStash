@@ -78,6 +78,12 @@ export const Callback = asyncHandler(async (req: Request, res: Response) => {
   logger.warn(
     `OAuth callback debug: provider=${provider} queryKeys=${JSON.stringify(Object.keys(req.query))} hasUrl=${Boolean(req.url)} urlLen=${req.url?.length}`,
   );
+  {
+    const desc = Object.getOwnPropertyDescriptor(req, 'query');
+    logger.warn(
+      `OAuth callback dbg2: ownProp=${desc ? (desc.get ? 'accessor' : 'data') : 'proto'} query=${JSON.stringify(req.query)} url=${req.url}`,
+    );
+  }
 
   const { code, state, error } = req.query as {
     code?: string;
