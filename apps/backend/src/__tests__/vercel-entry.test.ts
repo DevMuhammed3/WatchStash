@@ -12,7 +12,7 @@ process.env.FRONTEND_ORIGIN ??= 'http://localhost:3000';
 process.env.GOOGLE_CLIENT_ID ??= 'test_google_client_id';
 process.env.GOOGLE_CLIENT_SECRET ??= 'test_google_client_secret';
 
-const { default: handler } = await import('../../../../server');
+const { default: handler } = await import('../../api/index');
 const { connectDB } = await import('../config/db');
 const { oauthProviders } = await import('../config/oauth');
 
