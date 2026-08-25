@@ -3,7 +3,8 @@ import type { OAuthProvider } from '@watchstash/types';
 import { User, type IUser } from '../models/User.js';
 import { AppError } from '../utils/AppError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { generateState, verifyState, readState, generateCodeVerifier, generateCodeChallenge } from '../utils/oauthState.js';
+import { generateState, diagnoseState, generateCodeVerifier, generateCodeChallenge } from '../utils/oauthState.js';
+import logger from '../config/logger.js';
 import { issueTokens } from '../utils/issueTokens.js';
 import { findUniqueUsername } from '../utils/uniqueUsername.js';
 import type { OAuthProfile } from '../config/oauth.js';
@@ -75,17 +76,22 @@ export const Callback = asyncHandler(async (req: Request, res: Response) => {
   getOAuthProvider(provider);
 
   const { code, state } = req.query as { code?: string; state?: string };
-  if (!code || !state || !verifyState(state, provider)) {
-    throw new AppError('Invalid OAuth callback', 400);
+  if (!code || !state) {
+    logger.warn(`OAuth callback rejected: provider=${provider} reason=missing_params`);
+    throw new AppError('Invalid OAuth callback (missing_params)', 400);
+  }
+  const verdict = diagnoseState(state, provider);
+  if (!verdict.ok) {
+    logger.warn(`OAuth callback rejected: provider=${provider} reason=${verdict.reason}`);
+    throw new AppError(`Invalid OAuth callback (${verdict.reason})`, 400);
   }
 
-  const statePayload = readState(state, provider);
   const redirectUri = buildRedirectUri(req, provider);
   const profile = await exchangeCodeForProfile(
     provider as OAuthProvider,
     code,
     redirectUri,
-    statePayload?.cv,
+    verdict.cv,
   );
   const user = await findOrCreateUserByOAuth(provider as OAuthProvider, profile);
   const { accessToken, refreshToken } = await issueTokens(user._id);
