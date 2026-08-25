@@ -75,6 +75,10 @@ export const Callback = asyncHandler(async (req: Request, res: Response) => {
   const provider = req.params.provider as string;
   getOAuthProvider(provider);
 
+  logger.warn(
+    `OAuth callback debug: provider=${provider} queryKeys=${JSON.stringify(Object.keys(req.query))} hasUrl=${Boolean(req.url)} urlLen=${req.url?.length}`,
+  );
+
   const { code, state, error } = req.query as {
     code?: string;
     state?: string;
