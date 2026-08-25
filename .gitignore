@@ -29,6 +29,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cache
 *.tsbuildinfo
 
+# vercel
+.vercel
+.vercel-sim
+
 # IntelliJ based IDEs
 .idea
 
