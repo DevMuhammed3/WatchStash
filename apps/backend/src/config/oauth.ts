@@ -1,5 +1,5 @@
 import type { OAuthProvider, OAuthProviderIdKey } from '@watchstash/types';
-import { AppError } from '../utils/AppError';
+import { AppError } from '../utils/AppError.js';
 
 export interface OAuthProfile {
   providerId: string;

@@ -1,19 +1,19 @@
 import type { Request, Response } from 'express';
 import type { OAuthProvider } from '@watchstash/types';
-import { User, type IUser } from '../models/User';
-import { AppError } from '../utils/AppError';
-import { asyncHandler } from '../utils/asyncHandler';
-import { generateState, verifyState, readState, generateCodeVerifier, generateCodeChallenge } from '../utils/oauthState';
-import { issueTokens } from '../utils/issueTokens';
-import { findUniqueUsername } from '../utils/uniqueUsername';
-import type { OAuthProfile } from '../config/oauth';
+import { User, type IUser } from '../models/User.js';
+import { AppError } from '../utils/AppError.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { generateState, verifyState, readState, generateCodeVerifier, generateCodeChallenge } from '../utils/oauthState.js';
+import { issueTokens } from '../utils/issueTokens.js';
+import { findUniqueUsername } from '../utils/uniqueUsername.js';
+import type { OAuthProfile } from '../config/oauth.js';
 import {
   getOAuthProvider,
   providerIdKey,
   buildAuthorizeUrl,
   exchangeCodeForProfile,
-} from '../config/oauth';
-import envValuaCheck from '../config/env';
+} from '../config/oauth.js';
+import envValuaCheck from '../config/env.js';
 
 function buildRedirectUri(req: Request, provider: string): string {
   return `${req.protocol}://${req.get('host')}/api/auth/oauth/${provider}/callback`;

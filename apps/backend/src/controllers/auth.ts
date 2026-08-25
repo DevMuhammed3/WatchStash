@@ -1,12 +1,12 @@
 import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { User } from '../models/User';
-import { RefreshToken } from '../models/RefreshToken';
-import { AppError } from '../utils/AppError';
-import { asyncHandler } from '../utils/asyncHandler';
-import type { IUser } from '../models/User';
-import { verifyRefreshToken, hashToken } from '../config/jwt';
-import { issueTokens } from '../utils/issueTokens';
+import { User } from '../models/User.js';
+import { RefreshToken } from '../models/RefreshToken.js';
+import { AppError } from '../utils/AppError.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import type { IUser } from '../models/User.js';
+import { verifyRefreshToken, hashToken } from '../config/jwt.js';
+import { issueTokens } from '../utils/issueTokens.js';
 
 const BCRYPT_ROUNDS = 12;
 

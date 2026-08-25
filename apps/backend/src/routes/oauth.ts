@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Authorize, Callback } from '../controllers/oauth';
+import { Authorize, Callback } from '../controllers/oauth.js';
 
 const router = Router();
 

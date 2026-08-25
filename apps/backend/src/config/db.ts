@@ -1,6 +1,6 @@
 // apps/backend/src/config/db.ts
 import mongoose from 'mongoose';
-import logger from './logger';
+import logger from './logger.js';
 
 interface MongooseCache {
   conn: typeof mongoose | null;

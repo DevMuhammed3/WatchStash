@@ -1,8 +1,8 @@
 import { Schema, model, Document, Types } from 'mongoose';
-import { Movie } from './Movie';
-import { StashItem } from './StashItem';
-import { RefreshToken } from './RefreshToken';
-import { Follow } from './Follow';
+import { Movie } from './Movie.js';
+import { StashItem } from './StashItem.js';
+import { RefreshToken } from './RefreshToken.js';
+import { Follow } from './Follow.js';
 
 export interface IUser extends Document {
   _id: Types.ObjectId;

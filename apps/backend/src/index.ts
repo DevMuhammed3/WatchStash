@@ -1,9 +1,9 @@
 // apps/backend/src/index.ts
-import App from "./app"
+import App from "./app.js"
 import mongoose from 'mongoose';
-import logger from './config/logger';
-import envValuaCheck from './config/env';
-import { connectDB } from './config/db';
+import logger from './config/logger.js';
+import envValuaCheck from './config/env.js';
+import { connectDB } from './config/db.js';
 
 
 const env = envValuaCheck.parse(process.env);

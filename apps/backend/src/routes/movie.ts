@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { addMovie, getMovies, toggleWatched, deleteMovie } from '../controllers/movie';
-import { authenticate } from '../middleware/auth';
-import { validate } from '../middleware/validate';
-import { createMovieSchema } from '../validations/movie';
+import { addMovie, getMovies, toggleWatched, deleteMovie } from '../controllers/movie.js';
+import { authenticate } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { createMovieSchema } from '../validations/movie.js';
 
 const router = Router();
 

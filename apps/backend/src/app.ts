@@ -5,12 +5,12 @@ import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'mongo-sanitize';
 import pinoHttp from 'pino-http';
 import mongoose from 'mongoose';
-import authRoutes from './routes/auth';
-import oauthRoutes from './routes/oauth';
-import movieRoutes from './routes/movie';
-import { errorHandler } from './middleware/errorHandler';
-import logger from './config/logger';
-import { requestId } from './middleware/requestId';
+import authRoutes from './routes/auth.js';
+import oauthRoutes from './routes/oauth.js';
+import movieRoutes from './routes/movie.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import logger from './config/logger.js';
+import { requestId } from './middleware/requestId.js';
 
 export default function App() {
   const app = express();

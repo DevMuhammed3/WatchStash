@@ -1,11 +1,11 @@
 import type { Types } from 'mongoose';
-import { RefreshToken } from '../models/RefreshToken';
+import { RefreshToken } from '../models/RefreshToken.js';
 import {
   generateAccessToken,
   generateRefreshToken,
   decodeRefreshTokenExpiry,
   hashToken,
-} from '../config/jwt';
+} from '../config/jwt.js';
 
 export interface IssuedTokens {
   accessToken: string;

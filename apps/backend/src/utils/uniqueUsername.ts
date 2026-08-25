@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { User } from '../models/User';
+import { User } from '../models/User.js';
 
 export function slugifyUsername(input: string): string {
   return (
