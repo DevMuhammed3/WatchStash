@@ -37,6 +37,14 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     return;
   }
 
+  Object.defineProperty(req, 'query', {
+    get() {
+      const u = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+      return Object.fromEntries(u.searchParams);
+    },
+    configurable: true,
+  });
+
   try {
     await connectDB();
   } catch (error) {

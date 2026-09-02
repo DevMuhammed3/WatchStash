@@ -1,5 +1,6 @@
 import { describe, test, expect, afterAll, beforeAll } from 'bun:test';
 import request from 'supertest';
+import http from 'node:http';
 import mongoose from 'mongoose';
 
 process.env.JWT_SECRET ??= 'test_secret';
@@ -78,6 +79,36 @@ describe('Vercel entrypoint', () => {
       } else {
         process.env.MONGODB_URI = originalUri;
       }
+    }
+  });
+
+  test('parses callback query params through the Vercel bridge', async () => {
+    const srv = http.createServer((req, res) => {
+      Object.defineProperty(req, 'query', {
+        value: {},
+        configurable: true,
+        enumerable: true,
+        writable: true,
+      });
+      void handler(req, res);
+    });
+    await new Promise<void>((resolve) => srv.listen(0, '127.0.0.1', resolve));
+
+    const address = srv.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('expected a bound TCP server');
+    }
+
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:${address.port}/api/auth/oauth/google/callback?state=encoded.definitely_not_a_valid_sig&code=garbage`,
+      );
+      const body = (await res.json()) as { message: string };
+
+      expect(res.status).toBe(400);
+      expect(body.message).toBe('Invalid OAuth callback (invalid_signature)');
+    } finally {
+      await new Promise<void>((resolve) => srv.close(() => resolve()));
     }
   });
 
