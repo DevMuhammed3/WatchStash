@@ -16,6 +16,12 @@ function respondJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const rawUrl = req.url ?? '/';
   const url = new URL(rawUrl, `http://${req.headers.host ?? 'localhost'}`);
