@@ -9,11 +9,16 @@ import { API_BASE_URL, oauthAuthorizeUrl } from "@/lib/auth";
 import { GoogleIcon, GitHubIcon, FacebookIcon, XIcon } from "@/components/brand-icons";
 import type { OAuthProvider, UserProfile } from "@watchstash/types";
 
-const PROVIDERS: Array<{ id: OAuthProvider; label: string; icon: typeof GitHubIcon }> = [
+const PROVIDERS: Array<{
+  id: OAuthProvider;
+  label: string;
+  icon: typeof GitHubIcon;
+  comingSoon?: boolean;
+}> = [
   { id: "google", label: "Continue with Google", icon: GoogleIcon },
   { id: "github", label: "Continue with GitHub", icon: GitHubIcon },
-  { id: "facebook", label: "Continue with Facebook", icon: FacebookIcon },
-  { id: "twitter", label: "Continue with X", icon: XIcon },
+  { id: "facebook", label: "Continue with Facebook", icon: FacebookIcon, comingSoon: true },
+  { id: "twitter", label: "Continue with X", icon: XIcon, comingSoon: true },
 ];
 
 type Mode = "signin" | "register";
@@ -263,16 +268,30 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-1.5">
-            {PROVIDERS.map(({ id, label, icon: Icon }) => (
-              <a
-                key={id}
-                href={oauthAuthorizeUrl(id)}
-                className="flex w-full items-center gap-3 rounded-lg border border-border bg-canvas px-4 py-2 text-sm font-medium text-primary transition-all duration-200 hover:border-border-hover hover:bg-border/40 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-              >
-                <Icon className="h-4.5 w-4.5 shrink-0" />
-                {label}
-              </a>
-            ))}
+            {PROVIDERS.map(({ id, label, icon: Icon, comingSoon }) =>
+              comingSoon ? (
+                <div
+                  key={id}
+                  aria-disabled="true"
+                  className="flex w-full cursor-not-allowed items-center gap-3 rounded-lg border border-border bg-canvas px-4 py-2 text-sm font-medium text-primary opacity-60"
+                >
+                  <Icon className="h-4.5 w-4.5 shrink-0" />
+                  {label}
+                  <span className="ml-auto rounded-full border border-border bg-border/40 px-2 py-0.5 text-[10px] font-medium text-muted">
+                    Coming soon
+                  </span>
+                </div>
+              ) : (
+                <a
+                  key={id}
+                  href={oauthAuthorizeUrl(id)}
+                  className="flex w-full items-center gap-3 rounded-lg border border-border bg-canvas px-4 py-2 text-sm font-medium text-primary transition-all duration-200 hover:border-border-hover hover:bg-border/40 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+                >
+                  <Icon className="h-4.5 w-4.5 shrink-0" />
+                  {label}
+                </a>
+              ),
+            )}
           </div>
 
           <p className="mt-3 text-center text-[11px] leading-snug text-subtle">
