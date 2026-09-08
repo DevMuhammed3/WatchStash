@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Clapperboard, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { setTokens } from "@/lib/auth";
 
 export default function AuthCallbackPage() {
+  const t = useTranslations("authCallback");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -15,7 +18,7 @@ export default function AuthCallbackPage() {
     const errorParam = params.get("error");
 
     if (errorParam) {
-      setError("Sign-in was not completed. Please try again.");
+      setError(t("signInNotCompleted"));
       return;
     }
 
@@ -25,7 +28,8 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    setError("Sign-in failed. Please try again.");
+    setError(t("signInFailed"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -42,17 +46,17 @@ export default function AuthCallbackPage() {
         {error ? (
           <>
             <p className="text-sm text-muted">{error}</p>
-            <a
+            <Link
               href="/login"
               className="mt-4 inline-block rounded-lg border border-border px-4 py-2 text-sm font-medium text-primary transition-colors hover:border-border-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
             >
-              Back to sign in
-            </a>
+              {t("backToSignIn")}
+            </Link>
           </>
         ) : (
           <div className="flex items-center gap-3">
             <Loader2 className="h-5 w-5 animate-spin text-accent" />
-            <p className="text-sm text-muted">Signing you in…</p>
+            <p className="text-sm text-muted">{t("signingIn")}</p>
           </div>
         )}
       </div>

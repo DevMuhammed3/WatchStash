@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -11,48 +12,45 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { Film } from "lucide-react";
+import { Film, Plus, Loader2, AlertCircle } from "lucide-react";
+import dynamic from "next/dynamic";
+import Image from "next/image";
+import { Button } from "@watchstash/ui";
 import { FilterBar } from "@/components/FilterBar";
 import { StatusSection } from "@/components/StatusSection";
-import { MediaDetailModal } from "@/components/MediaDetailModal";
 import { useAuth } from "@/lib/auth-context";
+import { API_BASE_URL } from "@/lib/auth";
 import type { MediaItem, SortOption, MediaStatus } from "@watchstash/types";
+import { STATUS_ORDER } from "@watchstash/types";
 
-const MOCK_ITEMS: MediaItem[] = [
-  { _id: "1", title: "Inception", type: "movie", status: "completed", rating: 9, review: "A mind-bending masterpiece.", progress: { currentEpisode: 0, currentSeason: 1 }, createdAt: "2024-03-15T10:00:00Z", updatedAt: "2024-03-15T10:00:00Z" },
-  { _id: "2", title: "Arcane", type: "series", status: "watching", rating: 8, progress: { currentEpisode: 6, totalEpisodes: 9, currentSeason: 1 }, createdAt: "2024-03-14T10:00:00Z", updatedAt: "2024-03-14T10:00:00Z" },
-  { _id: "3", title: "Attack on Titan", type: "anime", status: "plan_to_watch", progress: { currentEpisode: 0, totalEpisodes: 75, currentSeason: 1 }, createdAt: "2024-03-13T10:00:00Z", updatedAt: "2024-03-13T10:00:00Z" },
-  { _id: "4", title: "Interstellar", type: "movie", status: "completed", rating: 10, progress: { currentEpisode: 0, currentSeason: 1 }, createdAt: "2024-03-12T10:00:00Z", updatedAt: "2024-03-12T10:00:00Z" },
-  { _id: "5", title: "Dark", type: "series", status: "on_hold", rating: 7, progress: { currentEpisode: 8, totalEpisodes: 26, currentSeason: 2 }, createdAt: "2024-03-11T10:00:00Z", updatedAt: "2024-03-11T10:00:00Z" },
-  { _id: "6", title: "The Matrix", type: "movie", status: "completed", rating: 9, progress: { currentEpisode: 0, currentSeason: 1 }, createdAt: "2024-03-10T10:00:00Z", updatedAt: "2024-03-10T10:00:00Z" },
-  { _id: "7", title: "Cowboy Bebop", type: "anime", status: "plan_to_watch", progress: { currentEpisode: 0, totalEpisodes: 26, currentSeason: 1 }, createdAt: "2024-03-09T10:00:00Z", updatedAt: "2024-03-09T10:00:00Z" },
-  { _id: "8", title: "Breaking Bad", type: "series", status: "plan_to_watch", progress: { currentEpisode: 0, totalEpisodes: 62, currentSeason: 1 }, createdAt: "2024-03-08T10:00:00Z", updatedAt: "2024-03-08T10:00:00Z" },
-  { _id: "9", title: "Parasite", type: "movie", status: "completed", rating: 8, progress: { currentEpisode: 0, currentSeason: 1 }, createdAt: "2024-03-07T10:00:00Z", updatedAt: "2024-03-07T10:00:00Z" },
-  { _id: "10", title: "One Punch Man", type: "anime", status: "plan_to_watch", progress: { currentEpisode: 0, totalEpisodes: 24, currentSeason: 1 }, createdAt: "2024-03-06T10:00:00Z", updatedAt: "2024-03-06T10:00:00Z" },
-  { _id: "11", title: "The Shawshank Redemption", type: "movie", status: "completed", rating: 10, progress: { currentEpisode: 0, currentSeason: 1 }, createdAt: "2024-03-05T10:00:00Z", updatedAt: "2024-03-05T10:00:00Z" },
-  { _id: "12", title: "Fullmetal Alchemist", type: "anime", status: "plan_to_watch", progress: { currentEpisode: 0, totalEpisodes: 64, currentSeason: 1 }, createdAt: "2024-03-04T10:00:00Z", updatedAt: "2024-03-04T10:00:00Z" },
-  { _id: "13", title: "Stranger Things", type: "series", status: "watching", rating: 7, progress: { currentEpisode: 5, totalEpisodes: 8, currentSeason: 4 }, createdAt: "2024-03-03T10:00:00Z", updatedAt: "2024-03-03T10:00:00Z" },
-  { _id: "14", title: "Ghost in the Shell", type: "anime", status: "plan_to_watch", progress: { currentEpisode: 0, totalEpisodes: 1, currentSeason: 1 }, createdAt: "2024-03-02T10:00:00Z", updatedAt: "2024-03-02T10:00:00Z" },
-  { _id: "15", title: "Pulp Fiction", type: "movie", status: "completed", rating: 9, progress: { currentEpisode: 0, currentSeason: 1 }, createdAt: "2024-03-01T10:00:00Z", updatedAt: "2024-03-01T10:00:00Z" },
-  { _id: "16", title: "Steins;Gate", type: "anime", status: "watching", rating: 9, progress: { currentEpisode: 12, totalEpisodes: 24, currentSeason: 1 }, createdAt: "2024-02-28T10:00:00Z", updatedAt: "2024-02-28T10:00:00Z" },
-];
+const AddMediaModal = dynamic(() =>
+  import("@/components/AddMediaModal").then((m) => m.AddMediaModal),
+);
+const MediaDetailModal = dynamic(() =>
+  import("@/components/MediaDetailModal").then((m) => m.MediaDetailModal),
+);
 
-const STATUS_ORDER: MediaStatus[] = [
-  "plan_to_watch",
-  "watching",
-  "on_hold",
-  "completed",
-];
+interface StashResponse {
+  status: string;
+  items: MediaItem[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+}
 
 export default function Home() {
-  const { user, status, logout } = useAuth();
+  const { user, status, logout, apiFetch } = useAuth();
   const router = useRouter();
+  const tHome = useTranslations("home");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
 
-  const [items, setItems] = useState(MOCK_ITEMS);
+  const [items, setItems] = useState<MediaItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("recent");
   const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
   const [activeItem, setActiveItem] = useState<MediaItem | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -64,14 +62,109 @@ export default function Home() {
     }
   }, [status, router]);
 
+  const loadStash = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/api/stash?page=1&limit=100`);
+      if (!res.ok) throw new Error(tErrors("loadStash"));
+      const data = (await res.json()) as StashResponse;
+      setItems(data.items);
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : tErrors("somethingWentWrong"));
+    } finally {
+      setLoading(false);
+    }
+  }, [apiFetch, tErrors]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      loadStash();
+    }
+  }, [status, loadStash]);
+
+  const patchStash = useCallback(
+    async (id: string, fields: Partial<Pick<MediaItem, "status" | "rating" | "review">>) => {
+      const res = await apiFetch(`${API_BASE_URL}/api/stash/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fields),
+      });
+      if (!res.ok) {
+        const data = (await res.json()) as { message?: string };
+        throw new Error(data.message ?? tErrors("updateFailed"));
+      }
+      return (await res.json()) as { item: MediaItem };
+    },
+    [apiFetch, tErrors],
+  );
+
+  const handleStatusChange = useCallback(
+    async (id: string, nextStatus: MediaStatus) => {
+      const previous = items;
+      const prevItem = items.find((i) => i._id === id);
+      setItems((prev) =>
+        prev.map((item) => (item._id === id ? { ...item, status: nextStatus } : item)),
+      );
+      try {
+        await patchStash(id, { status: nextStatus });
+      } catch {
+        setItems(previous);
+        setSelectedItem(prevItem ?? null);
+      }
+    },
+    [items, patchStash],
+  );
+
+  const handleRatingChange = useCallback(
+    async (id: string, rating: number) => {
+      const previous = items;
+      const prevItem = items.find((i) => i._id === id);
+      const apply = () => {
+        setItems((prev) =>
+          prev.map((item) => (item._id === id ? { ...item, rating } : item)),
+        );
+        setSelectedItem((prev) => (prev?._id === id ? { ...prev, rating } : prev));
+      };
+      apply();
+      try {
+        await patchStash(id, { rating });
+      } catch {
+        setItems(previous);
+        setSelectedItem(prevItem ?? null);
+      }
+    },
+    [items, patchStash],
+  );
+
+  const handleNotesChange = useCallback(
+    async (id: string, review: string) => {
+      const previous = items;
+      const prevItem = items.find((i) => i._id === id);
+      setItems((prev) =>
+        prev.map((item) => (item._id === id ? { ...item, review } : item)),
+      );
+      setSelectedItem((prev) => (prev?._id === id ? { ...prev, review } : prev));
+      try {
+        await patchStash(id, { review });
+      } catch {
+        setItems(previous);
+        setSelectedItem(prevItem ?? null);
+      }
+    },
+    [items, patchStash],
+  );
+
+  const handleAdded = useCallback((item: MediaItem) => {
+    setItems((prev) => [item, ...prev]);
+  }, []);
+
   const filtered = useMemo(() => {
     let result = [...items];
 
     if (search.trim()) {
       const q = search.toLowerCase();
-      result = result.filter((item) =>
-        item.title.toLowerCase().includes(q),
-      );
+      result = result.filter((item) => item.title.toLowerCase().includes(q));
     }
 
     switch (sort) {
@@ -101,38 +194,8 @@ export default function Home() {
   if (status !== "authenticated") {
     return (
       <main className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted">Loading your stash…</p>
+        <p className="text-sm text-muted">{tHome("loading")}</p>
       </main>
-    );
-  }
-
-  function handleStatusChange(id: string, status: MediaStatus) {
-    setItems((prev) =>
-      prev.map((item) =>
-        item._id === id ? { ...item, status } : item,
-      ),
-    );
-  }
-
-  function handleRatingChange(id: string, rating: number) {
-    setItems((prev) =>
-      prev.map((item) =>
-        item._id === id ? { ...item, rating } : item,
-      ),
-    );
-    setSelectedItem((prev) =>
-      prev?._id === id ? { ...prev, rating } : prev,
-    );
-  }
-
-  function handleNotesChange(id: string, review: string) {
-    setItems((prev) =>
-      prev.map((item) =>
-        item._id === id ? { ...item, review } : item,
-      ),
-    );
-    setSelectedItem((prev) =>
-      prev?._id === id ? { ...prev, review } : prev,
     );
   }
 
@@ -161,14 +224,14 @@ export default function Home() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+      <main className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8 border-b border-border pb-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold tracking-tight text-primary">
                 WatchStash
               </h1>
-              <span className="h-1 w-10 rounded-full bg-accent" />
             </div>
             <div className="flex items-center gap-3">
               {user && (
@@ -176,50 +239,79 @@ export default function Home() {
                   {user.displayName}
                 </span>
               )}
-              <button
+              <Button variant="primary" className="cursor-pointer" onClick={() => setAddOpen(true)}>
+                <Plus className="h-4 w-4" />
+                {tCommon("addMedia")}
+              </Button>
+              <Button
                 onClick={() => logout()}
-                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-border-hover hover:text-primary"
+                className="cursor-pointer  rounded-md border border-border px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-border-hover hover:text-primary"
               >
-                Sign out
-              </button>
+                {tCommon("signOut")}
+              </Button>
             </div>
           </div>
           <p className="mt-2 text-sm text-muted">
-            Your personal media collection
+            {tHome("tagline")}
           </p>
         </div>
 
-        <div className="mb-10">
-          <FilterBar
-            search={search}
-            onSearchChange={setSearch}
-            sort={sort}
-            onSortChange={setSort}
-          />
-        </div>
-
-        <div className="space-y-12">
-          {STATUS_ORDER.map((status) => {
-            const sectionItems = grouped.get(status) ?? [];
-            return (
-              <StatusSection
-                key={status}
-                status={status}
-                items={sectionItems}
-                onItemClick={setSelectedItem}
-                onStatusChange={handleStatusChange}
-              />
-            );
-          })}
-        </div>
-
-        {filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-lg font-medium text-muted">Nothing in your stash yet</p>
-            <p className="mt-1 text-sm text-subtle">
-              Add some movies or shows to get started
-            </p>
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 py-24 text-muted">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <p className="text-sm">{tHome("loading")}</p>
           </div>
+        ) : loadError ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+            <AlertCircle className="h-8 w-8 text-red-400" />
+            <p className="text-sm text-red-400">{loadError}</p>
+            <Button onClick={loadStash}>{tCommon("tryAgain")}</Button>
+          </div>
+        ) : (
+          <>
+            <div className="mb-10">
+              <FilterBar
+                search={search}
+                onSearchChange={setSearch}
+                sort={sort}
+                onSortChange={setSort}
+              />
+            </div>
+
+            <div className="space-y-12">
+              {STATUS_ORDER.map((statusKey) => {
+                const sectionItems = grouped.get(statusKey) ?? [];
+                return (
+                  <StatusSection
+                    key={statusKey}
+                    status={statusKey}
+                    items={sectionItems}
+                    onItemClick={setSelectedItem}
+                    onStatusChange={handleStatusChange}
+                  />
+                );
+              })}
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+                <p className="text-lg font-medium text-muted">
+                  {items.length === 0 ? tHome("emptyStash") : tHome("noMatches")}
+                </p>
+                <p className="text-sm text-subtle">
+                  {items.length === 0
+                    ? tHome("emptyStashHint")
+                    : tHome("noMatchesHint")}
+                </p>
+                {items.length === 0 && (
+                  <Button variant="primary" onClick={() => setAddOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                    {tCommon("addMedia")}
+                  </Button>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         <MediaDetailModal
@@ -228,15 +320,31 @@ export default function Home() {
           onRatingChange={handleRatingChange}
           onNotesChange={handleNotesChange}
         />
+
+        <AddMediaModal
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          onAdded={handleAdded}
+        />
       </main>
 
       <DragOverlay dropAnimation={null}>
         {activeItem ? (
           <div className="w-44 opacity-95">
             <div className="relative aspect-[2/3] rounded-xl border border-accent/40 bg-surface shadow-2xl shadow-black/60">
-              <div className="flex h-full w-full items-center justify-center">
-                <Film className="h-12 w-12 text-subtle" />
-              </div>
+              {activeItem.posterUrl ? (
+                <Image
+                  src={activeItem.posterUrl}
+                  alt={activeItem.title}
+                  fill
+                  sizes="176px"
+                  className="rounded-xl object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Film className="h-12 w-12 text-subtle" />
+                </div>
+              )}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-surface to-transparent p-3 pt-8">
                 <p className="text-sm font-medium text-primary line-clamp-2">
                   {activeItem.title}

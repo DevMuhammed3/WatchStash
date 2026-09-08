@@ -1,15 +1,38 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { notFound } from "next/navigation";
+import { hasLocale } from "next-intl";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { routing } from "@/i18n/routing";
+import { Link } from "@/i18n/navigation";
 
-export const metadata: Metadata = {
-  title: "Terms of Service — WatchStash",
-  description:
-    "WatchStash Terms of Service. Read the terms governing your use of WatchStash.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) return {};
+  const t = await getTranslations({ locale, namespace: "metadata" });
+
+  return {
+    title: t("termsTitle"),
+    description: t("termsDescription"),
+    alternates: {
+      canonical: "/terms",
+    },
+  };
+}
 
 const LAST_UPDATED = "August 8, 2026";
 
-export default function TermsPage() {
+export default async function TermsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) notFound();
+  setRequestLocale(locale);
   return (
     <main className="min-h-screen bg-canvas">
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">

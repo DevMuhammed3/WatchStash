@@ -1,36 +1,42 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Clapperboard, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useRouter, Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import Image from "next/image";
+import icon from "../../../public/512×512_icon.png";
+import loginBg from "../../../public/login_bg.png";
 import { API_BASE_URL, oauthAuthorizeUrl } from "@/lib/auth";
+import { Button, Input } from "@watchstash/ui";
 import { GoogleIcon, GitHubIcon, FacebookIcon, XIcon } from "@/components/brand-icons";
 import type { OAuthProvider, UserProfile } from "@watchstash/types";
 
 const PROVIDERS: Array<{
   id: OAuthProvider;
-  label: string;
   icon: typeof GitHubIcon;
   comingSoon?: boolean;
 }> = [
-  { id: "google", label: "Continue with Google", icon: GoogleIcon },
-  { id: "github", label: "Continue with GitHub", icon: GitHubIcon },
-  { id: "facebook", label: "Continue with Facebook", icon: FacebookIcon, comingSoon: true },
-  { id: "twitter", label: "Continue with X", icon: XIcon, comingSoon: true },
+  { id: "google", icon: GoogleIcon },
+  { id: "github", icon: GitHubIcon },
+  { id: "facebook", icon: FacebookIcon, comingSoon: true },
+  { id: "twitter", icon: XIcon, comingSoon: true },
 ];
 
 type Mode = "signin" | "register";
 
 const inputClass =
-  "w-full rounded-lg border border-border bg-canvas px-3 py-2 text-sm text-primary transition-all duration-200 placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20";
+  "w-full rounded-lg! border border-border bg-canvas px-3! py-2! text-sm text-primary! transition-all! duration-200 placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20";
 
 const labelClass = "mb-1 block text-xs font-medium text-secondary";
 
 export default function LoginPage() {
   const { status, completeAuth } = useAuth();
   const router = useRouter();
+  const t = useTranslations("login");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
 
   const [mode, setMode] = useState<Mode>("signin");
   const [identifier, setIdentifier] = useState("");
@@ -79,18 +85,21 @@ export default function LoginPage() {
       };
 
       if (!res.ok) {
-        setError(data.message || (isRegister ? "Could not create account" : "Sign in failed"));
+        setError(
+          data.message ||
+            (isRegister ? tErrors("createAccountFailed") : tErrors("signInFailed")),
+        );
         return;
       }
 
       if (!data.accessToken || !data.refreshToken) {
-        setError("Unexpected server response");
+        setError(tErrors("unexpectedResponse"));
         return;
       }
 
       await completeAuth(data.accessToken, data.refreshToken, data.user);
     } catch {
-      setError("Network error. Is the backend running?");
+      setError(tErrors("networkError"));
     } finally {
       setLoading(false);
     }
@@ -99,11 +108,15 @@ export default function LoginPage() {
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-3">
       <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="animate-drift absolute -top-40 left-0 right-0 mx-auto h-[420px] w-[640px] max-w-full glow-amber blur-3xl" />
-        <div
-          className="animate-drift absolute -right-24 bottom-[-12%] h-[400px] w-[520px] glow-violet blur-3xl"
-          style={{ animationDelay: "-9s", animationDuration: "28s" }}
+        <Image
+          src={loginBg}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
         />
+        <div className="absolute inset-0 bg-black/60" />
       </div>
 
       <div className="relative w-full max-w-sm">
@@ -112,14 +125,21 @@ export default function LoginPage() {
           style={{ animationDelay: "40ms" }}
         >
           <div className="mb-2 flex items-center justify-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 text-accent shadow-[0_0_24px_rgba(245,158,11,0.25)]">
-              <Clapperboard className="h-4.5 w-4.5" />
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl">
+              <Image
+                src={icon}
+                alt="WatchStash logo"
+                width={36}
+                height={36}
+                className="h-full w-full"
+                priority
+              />
             </span>
             <h1 className="text-2xl font-bold tracking-tight text-primary">
               WatchStash
             </h1>
           </div>
-          <p className="text-sm text-muted">Sign in to your media collection</p>
+          <p className="text-sm text-muted">{t("tagline")}</p>
         </div>
 
         <div
@@ -127,54 +147,56 @@ export default function LoginPage() {
           style={{ animationDelay: "140ms" }}
         >
           <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg border border-border bg-canvas p-1">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => switchMode("signin")}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+              className={`rounded-md text-sm font-medium transition-all! duration-200 ${
                 mode === "signin"
                   ? "bg-surface text-primary shadow-sm"
                   : "text-muted hover:text-secondary"
               }`}
             >
-              Sign in
-            </button>
-            <button
-              type="button"
+              {t("signIn")}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => switchMode("register")}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+              className={`rounded-md text-sm font-medium transition-all! duration-200 ${
                 mode === "register"
                   ? "bg-surface text-primary shadow-sm"
                   : "text-muted hover:text-secondary"
               }`}
             >
-              Create account
-            </button>
+              {t("createAccount")}
+            </Button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-2.5" noValidate={false}>
             {mode === "register" ? (
               <>
                 <label className="block">
-                  <span className={labelClass}>Username</span>
-                  <input
+                  <span className={labelClass}>{t("username")}</span>
+                  <Input
                     className={inputClass}
-                    placeholder="janedoe"
+                    placeholder={t("usernamePlaceholder")}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     minLength={3}
                     maxLength={30}
                     pattern="[a-z0-9_]+"
-                    title="Lowercase letters, numbers, and underscores"
+                    title={t("usernameHelp")}
                     autoComplete="username"
                     required
                   />
                 </label>
 
                 <label className="block">
-                  <span className={labelClass}>Display name</span>
-                  <input
+                  <span className={labelClass}>{t("displayName")}</span>
+                  <Input
                     className={inputClass}
-                    placeholder="Jane Doe"
+                    placeholder={t("namePlaceholder")}
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     maxLength={50}
@@ -187,11 +209,11 @@ export default function LoginPage() {
 
             <label className="block">
               <span className={labelClass}>
-                {mode === "register" ? "Email" : "Email or username"}
+                {mode === "register" ? t("email") : t("emailOrUsername")}
               </span>
-              <input
+              <Input
                 className={inputClass}
-                placeholder={mode === "register" ? "you@example.com" : "you@example.com"}
+                placeholder={t("emailPlaceholder")}
                 type={mode === "register" ? "email" : "text"}
                 value={mode === "register" ? email : identifier}
                 onChange={(e) =>
@@ -205,10 +227,10 @@ export default function LoginPage() {
             </label>
 
             <label className="block">
-              <span className={labelClass}>Password</span>
+              <span className={labelClass}>{t("password")}</span>
               <div className="relative">
-                <input
-                  className={`${inputClass} pr-10`}
+                <Input
+                  className={`${inputClass} pr-10!`}
                   placeholder="••••••••"
                   type={showPassword ? "text" : "password"}
                   value={password}
@@ -217,18 +239,19 @@ export default function LoginPage() {
                   minLength={8}
                   required
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-subtle transition-colors hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+                  aria-label={showPassword ? t("hidePassword") : t("showPassword")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-subtle! hover:text-secondary! hover:bg-transparent! active:bg-transparent!"
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
                   ) : (
                     <Eye className="h-4 w-4" />
                   )}
-                </button>
+                </Button>
               </div>
             </label>
 
@@ -240,35 +263,35 @@ export default function LoginPage() {
 
             {mode === "register" && (
               <p className="text-xs leading-snug text-subtle">
-                8+ characters with an uppercase letter, a lowercase letter, and
-                a number.
+                {t("passwordHelp")}
               </p>
             )}
 
-            <button
+            <Button
               type="submit"
+              variant="primary"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-black shadow-[0_0_20px_rgba(245,158,11,0.2)] transition-all duration-200 hover:bg-accent-hover hover:shadow-[0_0_28px_rgba(245,158,11,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
+              className="w-full rounded-lg! py-2.5! font-semibold! bg-accent! text-black! shadow-[0_0_20px_rgba(245,158,11,0.2)] transition-all! duration-200 hover:bg-accent-hover! hover:shadow-[0_0_28px_rgba(245,158,11,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {loading
                 ? mode === "register"
-                  ? "Creating account…"
-                  : "Signing in…"
+                  ? t("creatingAccount")
+                  : t("signingIn")
                 : mode === "register"
-                  ? "Create account"
-                  : "Sign in"}
-            </button>
+                  ? t("createAccount")
+                  : t("signIn")}
+            </Button>
           </form>
 
           <div className="my-3 flex items-center gap-3" aria-hidden>
             <span className="h-px flex-1 bg-border" />
-            <span className="text-xs text-subtle">or continue with</span>
+            <span className="text-xs text-subtle">{t("orContinueWith")}</span>
             <span className="h-px flex-1 bg-border" />
           </div>
 
           <div className="space-y-1.5">
-            {PROVIDERS.map(({ id, label, icon: Icon, comingSoon }) =>
+            {PROVIDERS.map(({ id, icon: Icon, comingSoon }) =>
               comingSoon ? (
                 <div
                   key={id}
@@ -276,9 +299,9 @@ export default function LoginPage() {
                   className="flex w-full cursor-not-allowed items-center gap-3 rounded-lg border border-border bg-canvas px-4 py-2 text-sm font-medium text-primary opacity-60"
                 >
                   <Icon className="h-4.5 w-4.5 shrink-0" />
-                  {label}
+                  {t(`providers.${id}`)}
                   <span className="ml-auto rounded-full border border-border bg-border/40 px-2 py-0.5 text-[10px] font-medium text-muted">
-                    Coming soon
+                    {tCommon("comingSoon")}
                   </span>
                 </div>
               ) : (
@@ -288,28 +311,31 @@ export default function LoginPage() {
                   className="flex w-full items-center gap-3 rounded-lg border border-border bg-canvas px-4 py-2 text-sm font-medium text-primary transition-all duration-200 hover:border-border-hover hover:bg-border/40 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
                 >
                   <Icon className="h-4.5 w-4.5 shrink-0" />
-                  {label}
+                  {t(`providers.${id}`)}
                 </a>
               ),
             )}
           </div>
 
           <p className="mt-3 text-center text-[11px] leading-snug text-subtle">
-            By continuing, you agree to our{" "}
-            <Link
-              href="/terms"
-              className="text-muted transition-colors hover:text-secondary"
-            >
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/privacy"
-              className="text-muted transition-colors hover:text-secondary"
-            >
-              Privacy Policy
-            </Link>
-            .
+            {t.rich("legalNote", {
+              terms: (chunks) => (
+                <Link
+                  href="/terms"
+                  className="text-muted transition-colors hover:text-secondary"
+                >
+                  {chunks}
+                </Link>
+              ),
+              privacy: (chunks) => (
+                <Link
+                  href="/privacy"
+                  className="text-muted transition-colors hover:text-secondary"
+                >
+                  {chunks}
+                </Link>
+              ),
+            })}
           </p>
         </div>
 
@@ -317,8 +343,7 @@ export default function LoginPage() {
           className="animate-fade-up mt-3 text-center text-xs text-subtle"
           style={{ animationDelay: "220ms" }}
         >
-          New here? A WatchStash account is created automatically the first time
-          you sign in.
+          {t("newHere")}
         </p>
       </div>
     </main>

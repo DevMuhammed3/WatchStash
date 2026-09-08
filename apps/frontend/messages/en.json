@@ -1,0 +1,142 @@
+{
+  "common": {
+    "appName": "WatchStash",
+    "addMedia": "Add media",
+    "signOut": "Sign out",
+    "loading": "Loading…",
+    "tryAgain": "Try again",
+    "comingSoon": "Coming soon",
+    "backToSignIn": "Back to sign in"
+  },
+  "home": {
+    "tagline": "Your personal media collection",
+    "loading": "Loading your stash…",
+    "emptyStash": "Nothing in your stash yet",
+    "emptyStashHint": "Add some movies or shows to get started",
+    "noMatches": "No matches",
+    "noMatchesHint": "Try a different search or filter"
+  },
+  "login": {
+    "tagline": "Sign in to your media collection",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "signingIn": "Signing in…",
+    "creatingAccount": "Creating account…",
+    "username": "Username",
+    "displayName": "Display name",
+    "email": "Email",
+    "emailOrUsername": "Email or username",
+    "password": "Password",
+    "usernamePlaceholder": "janedoe",
+    "namePlaceholder": "Jane Doe",
+    "emailPlaceholder": "you@example.com",
+    "usernameHelp": "Lowercase letters, numbers, and underscores",
+    "passwordHelp": "8+ characters with an uppercase letter, a lowercase letter, and a number.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "orContinueWith": "or continue with",
+    "newHere": "New here? A WatchStash account is created automatically the first time you sign in.",
+    "legalNote": "By continuing, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>.",
+    "providers": {
+      "google": "Continue with Google",
+      "github": "Continue with GitHub",
+      "facebook": "Continue with Facebook",
+      "twitter": "Continue with X"
+    }
+  },
+  "status": {
+    "plan_to_watch": "Plan to Watch",
+    "watching": "Watching",
+    "on_hold": "On Hold",
+    "completed": "Completed"
+  },
+  "type": {
+    "movie": "Movie",
+    "series": "Series",
+    "anime": "Anime",
+    "tv": "TV"
+  },
+  "filterBar": {
+    "searchPlaceholder": "Search your stash...",
+    "sort": {
+      "recent": "Recently Added",
+      "rating": "Highest Rated"
+    }
+  },
+  "statusSection": {
+    "dropHere": "Drop here",
+    "scrollLeft": "Scroll left",
+    "scrollRight": "Scroll right"
+  },
+  "mediaCard": {
+    "actionStart": "Start",
+    "actionDone": "Done",
+    "actionHold": "Hold",
+    "actionPlan": "Plan",
+    "changeStatus": "Change status (currently: {status})"
+  },
+  "mediaDetail": {
+    "close": "Close",
+    "summary": "Summary",
+    "genres": "Genres",
+    "communityRating": "Community Rating",
+    "votes": "{count} votes",
+    "yourRating": "Your Rating",
+    "progress": "Progress",
+    "season": "Season {season}",
+    "episode": "Episode {current} / {total}",
+    "tags": "Tags",
+    "notes": "Personal Notes",
+    "notesPlaceholder": "Write your thoughts..."
+  },
+  "addMedia": {
+    "title": "Add to stash",
+    "search": "Search",
+    "trending": "Trending",
+    "searchPlaceholder": "Search movies, series or anime…",
+    "backToResults": "Back to results",
+    "type": "Type",
+    "status": "Status",
+    "typeToSearch": "Type a title to search",
+    "nothingTrending": "Nothing trending right now"
+  },
+  "mobileGate": {
+    "title": "WatchStash is coming to mobile",
+    "body": "The phone app is on the way. For now, please use WatchStash on your desktop or laptop browser — we can't wait for you to join us on mobile."
+  },
+  "authCallback": {
+    "signInNotCompleted": "Sign-in was not completed. Please try again.",
+    "signInFailed": "Sign-in failed. Please try again.",
+    "backToSignIn": "Back to sign in",
+    "signingIn": "Signing you in…"
+  },
+  "errors": {
+    "loadStash": "Failed to load your stash",
+    "somethingWentWrong": "Something went wrong",
+    "updateFailed": "Update failed",
+    "requestFailed": "Request failed",
+    "trendingFailed": "Failed to load trending",
+    "searchFailed": "Search failed",
+    "addFailed": "Failed to add",
+    "signInFailed": "Sign in failed",
+    "createAccountFailed": "Could not create account",
+    "unexpectedResponse": "Unexpected server response",
+    "networkError": "Network error. Is the backend running?"
+  },
+  "metadata": {
+    "defaultTitle": "WatchStash — Track Your Movies, TV Shows & Anime",
+    "titleTemplate": "%s — WatchStash",
+    "description": "WatchStash is a free media tracker for organizing movies, TV shows, and anime — rate, review, and manage your watchlist in one place.",
+    "loginTitle": "Sign in",
+    "loginDescription": "Sign in to WatchStash to track your movies, TV shows, and anime — or create your free account in seconds.",
+    "termsTitle": "Terms of Service",
+    "termsDescription": "Read the Terms of Service that govern your use of WatchStash, the free media tracker for movies, TV shows, and anime.",
+    "privacyTitle": "Privacy Policy",
+    "privacyDescription": "Learn how WatchStash collects, uses, and protects your personal information. Read the full Privacy Policy.",
+    "ogImageAlt": "WatchStash logo"
+  },
+  "aria": {
+    "rating": "Rating",
+    "starCount": "{count, plural, one {# star} other {# stars}}"
+  }
+}
