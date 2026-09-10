@@ -2,6 +2,7 @@
 
 import { Star } from "lucide-react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface StarRatingProps {
   value: number;
@@ -19,11 +20,16 @@ export function StarRating({
   readonly = false,
 }: StarRatingProps) {
   const [hovered, setHovered] = useState(0);
+  const t = useTranslations("aria");
 
   const displayValue = hovered || value;
 
   return (
-    <div className="flex items-center gap-0.5" role="radiogroup" aria-label="Rating">
+    <div
+      className="flex items-center gap-0.5"
+      role="radiogroup"
+      aria-label={t("rating")}
+    >
       {Array.from({ length: max }, (_, i) => {
         const starValue = i + 1;
         const filled = starValue <= displayValue;
@@ -39,7 +45,7 @@ export function StarRating({
             onMouseEnter={() => !readonly && setHovered(starValue)}
             onMouseLeave={() => !readonly && setHovered(0)}
             className="group relative flex flex-col items-center"
-            aria-label={`${starValue} star${starValue > 1 ? "s" : ""}`}
+            aria-label={t("starCount", { count: starValue })}
             role="radio"
             aria-checked={starValue === value}
           >

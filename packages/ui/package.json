@@ -6,7 +6,8 @@
   "types": "src/index.ts",
   "private": true,
   "dependencies": {
-    "@watchstash/types": "workspace:*"
+    "@watchstash/types": "workspace:*",
+    "next-intl": "^4.14.6"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
