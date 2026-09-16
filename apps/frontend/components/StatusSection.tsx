@@ -2,16 +2,11 @@
 
 import { useRef, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useDroppable } from "@dnd-kit/core";
+import { Button } from "@watchstash/ui";
 import { MediaCard } from "@/components/MediaCard";
 import type { MediaItem, MediaStatus } from "@watchstash/types";
-
-const statusDisplay: Record<MediaStatus, { label: string }> = {
-  plan_to_watch: { label: "Plan to Watch" },
-  watching: { label: "Watching" },
-  on_hold: { label: "On Hold" },
-  completed: { label: "Completed" },
-};
 
 interface StatusSectionProps {
   status: MediaStatus;
@@ -26,10 +21,12 @@ export function StatusSection({
   onItemClick,
   onStatusChange,
 }: StatusSectionProps) {
+  const tStatus = useTranslations("status");
+  const t = useTranslations("statusSection");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const { label } = statusDisplay[status];
+  const label = tStatus(status);
 
   const { isOver, setNodeRef } = useDroppable({ id: status });
 
@@ -89,7 +86,7 @@ export function StatusSection({
               isOver ? "text-accent-hover" : "text-muted"
             }`}
           >
-            Drop here
+            {t("dropHere")}
           </p>
         </div>
       ) : (
@@ -101,27 +98,29 @@ export function StatusSection({
           {canScrollLeft && (
             <>
               <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-canvas to-transparent" />
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 type="button"
                 onClick={() => scrollBy("left")}
-                className="absolute left-1 top-1/2 z-20 -translate-y-1/2 rounded-full bg-surface/90 p-2 text-secondary shadow-lg backdrop-blur-sm transition-colors hover:bg-surface hover:text-primary"
-                aria-label="Scroll left"
+                className="absolute left-1 top-1/2 z-20 -translate-y-1/2 bg-surface/90 text-secondary shadow-lg backdrop-blur-sm hover:bg-surface!"
+                aria-label={t("scrollLeft")}
               >
                 <ChevronLeft className="h-5 w-5" />
-              </button>
+              </Button>
             </>
           )}
 
           <div
             ref={scrollRef}
-            className="flex gap-4 overflow-x-auto scroll-smooth pb-2"
+            className="flex gap-2 overflow-x-auto scroll-smooth pt-2 pb-6"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {items.map((item) => (
               <div
                 key={item._id}
                 data-card
-                className="min-w-[160px] flex-none sm:min-w-[180px] md:min-w-[200px]"
+                className="w-full flex-none md:w-[340px]"
               >
                 <MediaCard
                   itemId={item._id}
@@ -143,14 +142,16 @@ export function StatusSection({
           {canScrollRight && (
             <>
               <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-canvas to-transparent" />
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 type="button"
                 onClick={() => scrollBy("right")}
-                className="absolute right-1 top-1/2 z-20 -translate-y-1/2 rounded-full bg-surface/90 p-2 text-secondary shadow-lg backdrop-blur-sm transition-colors hover:bg-surface hover:text-primary"
-                aria-label="Scroll right"
+                className="absolute right-1 top-1/2 z-20 -translate-y-1/2 bg-surface/90 text-secondary shadow-lg backdrop-blur-sm hover:bg-surface!"
+                aria-label={t("scrollRight")}
               >
                 <ChevronRight className="h-5 w-5" />
-              </button>
+              </Button>
             </>
           )}
         </div>
