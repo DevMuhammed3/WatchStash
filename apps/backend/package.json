@@ -32,13 +32,16 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.4",
     "@watchstash/types": "workspace:*",
     "bcryptjs": "^3.0.3",
+    "cache-manager": "^7.2.9",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.5.2",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
+    "keyv": "^5.6.0",
     "mongo-sanitize": "^1.1.0",
     "mongoose": "8.12.1",
     "pino": "^10.3.1",

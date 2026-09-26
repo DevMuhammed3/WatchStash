@@ -1,14 +1,15 @@
-import  express  from "express";
+import express from "express";
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'mongo-sanitize';
 import pinoHttp from 'pino-http';
 import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';
 import oauthRoutes from './routes/oauth.js';
 import movieRoutes from './routes/movie.js';
+import { mediaRouter, stashRouter } from './routes/media.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { createRateLimit } from './config/upstash.js';
 import logger from './config/logger.js';
 import { requestId } from './middleware/requestId.js';
 
@@ -16,6 +17,8 @@ export default function App() {
   const app = express();
 app.set("trust proxy", 1);
 
+const globalLimiter = createRateLimit({ id: 'ip', limit: 100, window: '15 m', prefix: 'rl:global' });
+const authLimiter = createRateLimit({ id: 'ip', limit: 20, window: '15 m', prefix: 'rl:auth' });
 
 app.use(requestId);
 app.use(pinoHttp({ logger }));
@@ -39,23 +42,7 @@ app.get('/health', (_req, res) => {
   });
 });
 
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { status: 'error', message: 'Too many requests, please try again later' },
-});
-app.use(limiter);
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { status: 'error', message: 'Too many auth attempts, please try again later' },
-});
+app.use(globalLimiter);
 app.use('/api/auth', authLimiter);
 
 app.use(express.json({ limit: '10kb' }));
@@ -81,10 +68,11 @@ app.get('/', (_req, res) => {
   });
 });
 
-
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/oauth', oauthRoutes);
 app.use('/api/movies', movieRoutes);
+app.use('/api/media', mediaRouter);
+app.use('/api/stash', stashRouter);
 
 app.use(errorHandler);
 

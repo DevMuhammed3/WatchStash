@@ -1,5 +1,6 @@
 import { Schema, model, Document } from 'mongoose';
-import type { MediaType, MediaStatus, Progress } from '@watchstash/types';
+import { DEFAULT_STATUS, STATUS_ORDER } from '@watchstash/types';
+import type { MediaType, MediaStatus, Progress, ProviderId } from '@watchstash/types';
 
 export interface IStashItem extends Document {
   userId: Schema.Types.ObjectId;
@@ -10,7 +11,15 @@ export interface IStashItem extends Document {
   review?: string;
   progress: Progress;
   posterUrl?: string;
+  provider?: ProviderId;
   externalId?: string;
+  overview?: string;
+  year?: number;
+  backdropUrl?: string;
+  genres?: string[];
+  tmdbRating?: number;
+  tmdbVoteCount?: number;
+  tags?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,9 +43,9 @@ const stashItemSchema = new Schema<IStashItem>(
     },
     status: {
       type: String,
-      enum: ['watching', 'completed', 'on_hold', 'plan_to_watch'],
+      enum: STATUS_ORDER,
       required: true,
-      default: 'plan_to_watch',
+      default: DEFAULT_STATUS,
     },
     rating: {
       type: Number,
@@ -63,8 +72,38 @@ const stashItemSchema = new Schema<IStashItem>(
     posterUrl: {
       type: String,
     },
+    provider: {
+      type: String,
+      enum: ['tmdb'],
+    },
     externalId: {
       type: String,
+    },
+    overview: {
+      type: String,
+      trim: true,
+    },
+    year: {
+      type: Number,
+    },
+    backdropUrl: {
+      type: String,
+    },
+    genres: {
+      type: [String],
+      default: undefined,
+    },
+    tmdbRating: {
+      type: Number,
+      min: 0,
+      max: 10,
+    },
+    tmdbVoteCount: {
+      type: Number,
+    },
+    tags: {
+      type: [String],
+      default: undefined,
     },
   },
   {

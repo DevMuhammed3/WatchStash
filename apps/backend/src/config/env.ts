@@ -8,6 +8,10 @@ const envValuaCheck = z.object({
   CORS_ORIGIN: z.url(),
   FRONTEND_ORIGIN: z.url(),
   OAUTH_STATE_SECRET: z.string().min(1),
+  TMDB_ACCESS_TOKEN: z.string().default(''),
+  TMDB_API_KEY: z.string().default(''),
+  UPSTASH_REDIS_REST_URL: z.string().default(''),
+  UPSTASH_REDIS_REST_TOKEN: z.string().default(''),
 });
 
 export default envValuaCheck;
