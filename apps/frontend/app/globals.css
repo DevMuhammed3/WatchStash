@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
+@source "../../../packages/ui/src";
+
 @theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bebas), "Arial Narrow", ui-sans-serif, sans-serif;
+
   --color-canvas: #0a0a0a;
   --color-surface: #18181b;
   --color-border: #27272a;
@@ -65,11 +70,11 @@
 }
 
 .glow-amber {
-  background: radial-gradient(circle at center, rgba(245, 158, 11, 0.16), transparent 65%);
+  background: radial-gradient(circle at center, rgba(245, 158, 11, 0.38), rgba(245, 158, 11, 0.06) 55%, transparent 75%);
 }
 
 .glow-violet {
-  background: radial-gradient(circle at center, rgba(139, 92, 246, 0.1), transparent 65%);
+  background: radial-gradient(circle at center, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.04) 55%, transparent 75%);
 }
 
 @media (prefers-reduced-motion: reduce) {
