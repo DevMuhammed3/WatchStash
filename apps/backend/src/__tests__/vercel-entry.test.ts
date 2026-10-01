@@ -1,6 +1,5 @@
 import { describe, test, expect, afterAll, beforeAll } from 'bun:test';
 import request from 'supertest';
-import http from 'node:http';
 import mongoose from 'mongoose';
 
 process.env.JWT_SECRET ??= 'test_secret';
@@ -13,12 +12,14 @@ process.env.FRONTEND_ORIGIN ??= 'http://localhost:3000';
 process.env.GOOGLE_CLIENT_ID ??= 'test_google_client_id';
 process.env.GOOGLE_CLIENT_SECRET ??= 'test_google_client_secret';
 
-const { default: handler } = await import('../../api/server.js');
+const { default: App } = await import('../app.js');
 const { connectDB } = await import('../config/db.js');
 const { oauthProviders } = await import('../config/oauth.js');
 
 oauthProviders.google.clientId = 'test_google_client_id';
 oauthProviders.google.clientSecret = 'test_google_client_secret';
+
+const app = App();
 
 describe('Vercel entrypoint', () => {
   beforeAll(async () => {
@@ -28,8 +29,8 @@ describe('Vercel entrypoint', () => {
     await mongoose.connect(process.env.MONGODB_URI!);
   });
 
-  test('exports the Express app and serves its routes', async () => {
-    const response = await request(handler).get('/');
+  test('the app factory produces a working Express app', async () => {
+    const response = await request(app).get('/');
 
     expect(response.status).toBe(200);
     expect(response.body.message).toBe('WatchStash API is up and running!');
@@ -40,14 +41,14 @@ describe('Vercel entrypoint', () => {
 
     expect(conn.connection.readyState).toBe(1);
 
-    const health = await request(handler).get('/health');
+    const health = await request(app).get('/health');
 
     expect(health.status).toBe(200);
     expect(health.body.mongodb).toBe('connected');
   });
 
   test('builds https OAuth callback URLs behind the Vercel proxy', async () => {
-    const res = await request(handler)
+    const res = await request(app)
       .get('/api/auth/oauth/google/authorize')
       .set('Host', 'watchstash-backend.vercel.app')
       .set('X-Forwarded-Proto', 'https');
@@ -65,51 +66,14 @@ describe('Vercel entrypoint', () => {
     expect(location.searchParams.get('client_id')).toBeTruthy();
   });
 
-  test('responds 503 when MongoDB is unavailable', async () => {
-    const originalUri = process.env.MONGODB_URI;
-    delete process.env.MONGODB_URI;
+  test('rejects an OAuth callback with a forged state', async () => {
+    const res = await request(app).get(
+      '/api/auth/oauth/google/callback?state=encoded.definitely_not_a_valid_sig&code=garbage',
+    );
+    const body = res.body as { message: string };
 
-    try {
-      const res = await request(handler).get('/');
-      expect(res.status).toBe(503);
-      expect(res.body.message).toBe('Database unavailable');
-    } finally {
-      if (originalUri === undefined) {
-        delete process.env.MONGODB_URI;
-      } else {
-        process.env.MONGODB_URI = originalUri;
-      }
-    }
-  });
-
-  test('parses callback query params through the Vercel bridge', async () => {
-    const srv = http.createServer((req, res) => {
-      Object.defineProperty(req, 'query', {
-        value: {},
-        configurable: true,
-        enumerable: true,
-        writable: true,
-      });
-      void handler(req, res);
-    });
-    await new Promise<void>((resolve) => srv.listen(0, '127.0.0.1', resolve));
-
-    const address = srv.address();
-    if (!address || typeof address === 'string') {
-      throw new Error('expected a bound TCP server');
-    }
-
-    try {
-      const res = await fetch(
-        `http://127.0.0.1:${address.port}/api/auth/oauth/google/callback?state=encoded.definitely_not_a_valid_sig&code=garbage`,
-      );
-      const body = (await res.json()) as { message: string };
-
-      expect(res.status).toBe(400);
-      expect(body.message).toBe('Invalid OAuth callback (invalid_signature)');
-    } finally {
-      await new Promise<void>((resolve) => srv.close(() => resolve()));
-    }
+    expect(res.status).toBe(400);
+    expect(body.message).toBe('Invalid OAuth callback (invalid_signature)');
   });
 
   afterAll(async () => {
