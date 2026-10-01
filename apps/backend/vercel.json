@@ -1,6 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd ../.. && bun install",
+  "devCommand": "bun run dev",
+  "installCommand": "cd ../.. && bun install",
   "framework": null,
   "outputDirectory": ".",
+  "functions": {
+    "api/server.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30
+    }
+  },
   "rewrites": [{ "source": "/(.*)", "destination": "/api/server" }]
 }

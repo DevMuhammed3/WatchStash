@@ -1,10 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import crypto from 'node:crypto';
-import App from '../src/app.js';
-import envValuaCheck from '../src/config/env.js';
-import logger from '../src/config/logger.js';
-import { connectDB } from '../src/config/db.js';
-import { verifyState } from '../src/utils/oauthState.js';
+import App from "../src/app.js";
+import envValuaCheck from "../src/config/env.js";
+import logger from "../src/config/logger.js";
+import { connectDB } from "../src/config/db.js";
+import { verifyState } from "../src/utils/oauthState.js";
 
 envValuaCheck.parse(process.env);
 
