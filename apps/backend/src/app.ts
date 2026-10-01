@@ -24,7 +24,10 @@ export default function App(): Express {
 
   app.use(requestId);
   app.use(pinoMiddleware);
-  app.use(helmet());
+  // Cast: helmet's `exports` map has no `types` condition, so TypeScript falls
+  // back to the CJS declaration file and types the default import as the module
+  // namespace instead of a middleware factory. Runtime behaviour is unaffected.
+  app.use((helmet as unknown as () => RequestHandler)());
 
   app.use(
     cors({
