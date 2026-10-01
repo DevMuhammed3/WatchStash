@@ -1,8 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../.. && bun install && cd apps/backend && bun build _api/server.ts --outdir dist --target=node",
-  "devCommand": "bun run dev",
-  "installCommand": "cd ../.. && bun install",
-  "framework": null,
-  "outputDirectory": "dist"
+  "installCommand": "cd ../.. && bun install"
 }
