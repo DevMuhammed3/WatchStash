@@ -4,6 +4,5 @@
   "devCommand": "bun run dev",
   "installCommand": "cd ../.. && bun install",
   "framework": null,
-  "outputDirectory": "dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/server" }]
+  "outputDirectory": "dist"
 }
