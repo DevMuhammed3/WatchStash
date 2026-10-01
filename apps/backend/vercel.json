@@ -1,12 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../.. && bun install",
+  "buildCommand": "cd ../.. && bun install && cd apps/backend && bun build api/server.ts --outdir dist --target=node",
   "devCommand": "bun run dev",
   "installCommand": "cd ../.. && bun install",
   "framework": null,
-  "outputDirectory": ".",
+  "outputDirectory": "dist",
   "functions": {
-    "api/server.ts": {
+    "dist/server.js": {
       "runtime": "nodejs20.x",
       "maxDuration": 30
     }
