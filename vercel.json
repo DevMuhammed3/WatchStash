@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "bun install && cd apps/backend && bun run build",
+  "devCommand": "bun run dev",
+  "installCommand": "bun install",
+  "framework": null,
+  "outputDirectory": "apps/backend/dist",
+  "functions": {
+    "apps/backend/src/index.ts": {
+      "runtime": "bun@1.3.14",
+      "maxDuration": 30
+    }
+  }
+}
