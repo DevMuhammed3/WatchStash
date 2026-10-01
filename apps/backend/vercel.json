@@ -4,11 +4,5 @@
   "devCommand": "bun run dev",
   "installCommand": "cd ../.. && bun install",
   "framework": null,
-  "outputDirectory": "dist",
-  "functions": {
-    "api/server.ts": {
-      "runtime": "bun@1.3.14",
-      "maxDuration": 30
-    }
-  }
+  "outputDirectory": "dist"
 }
