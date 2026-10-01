@@ -13,7 +13,7 @@ const PORT = env.PORT;
 
 await connectDB();
 
-const server = app.listen(PORT, '127.0.0.1', () => {
+const server = app.listen(PORT, () => {
   logger.info(`WatchStash Backend running on http://localhost:${PORT}`);
 });
 
