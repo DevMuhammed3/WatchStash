@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
-    "build": "bun build src/index.ts --outdir dist",
+    "build": "bun x tsc",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write src/",

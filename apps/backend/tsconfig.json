@@ -1,19 +1,27 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["ESNext", "DOM"],
-    "target": "ESNext",
-    "module": "Preserve",
+    "lib": ["ESNext"],
+    "target": "ES2022",
+    "module": "NodeNext",
     "moduleDetection": "force",
-    "jsx": "react-jsx",
     "allowJs": true,
-    "types": ["bun"],
+    "types": ["bun", "node"],
 
-    // Bundler mode
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "noEmit": true,
+    // Output
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    // Module resolution for monorepo
+    "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "@watchstash/types": ["../packages/types/src"],
+      "@watchstash/ui": ["../packages/ui/src"]
+    },
 
     // Best practices
     "strict": true,
@@ -21,10 +29,16 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
 
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "src/__tests__"]
 }

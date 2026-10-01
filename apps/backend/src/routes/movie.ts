@@ -4,7 +4,7 @@ import { authenticate } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createMovieSchema } from '../validations/movie.js';
 
-const router = Router();
+const router: Router = Router();
 
 router.use(authenticate);
 

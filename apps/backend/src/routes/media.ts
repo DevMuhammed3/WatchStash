@@ -13,8 +13,8 @@ import { validate } from '../middleware/validate.js';
 import { createRateLimit } from '../config/upstash.js';
 import { searchTmdbQuerySchema, trendingQuerySchema, stashItemBodySchema, updateStashItemSchema } from '../validations/media.js';
 
-export const mediaRouter = Router();
-export const stashRouter = Router();
+export const mediaRouter: Router = Router();
+export const stashRouter: Router = Router();
 
 mediaRouter.use(authenticate);
 stashRouter.use(authenticate);
