@@ -31,3 +31,9 @@ _.log
 
 # Finder (MacOS) folder config
 .DS_Store
+.vercel
+.env*
+
+# generated Vercel function bundles
+api/
+_api/
