@@ -10,6 +10,5 @@
       "runtime": "nodejs20.x",
       "maxDuration": 30
     }
-  },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/server" }]
+  }
 }
