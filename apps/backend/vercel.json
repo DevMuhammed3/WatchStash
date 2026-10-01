@@ -5,11 +5,5 @@
   "installCommand": "cd ../.. && bun install",
   "framework": null,
   "outputDirectory": "dist",
-  "functions": {
-    "src/index.ts": {
-      "runtime": "bun@1.3.14",
-      "maxDuration": 30
-    }
-  },
   "rewrites": [{ "source": "/(.*)", "destination": "/api/server" }]
 }
