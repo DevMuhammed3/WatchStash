@@ -70,6 +70,9 @@ export default function LoginPage() {
       const res = await fetch(`${API_BASE_URL}/api/auth/${isRegister ? "register" : "login"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // Accept the httpOnly refresh cookie the API sets on this response —
+        // without this the browser discards the Set-Cookie header.
+        credentials: "include",
         body: JSON.stringify(
           isRegister
             ? { username, displayName, email, password }
