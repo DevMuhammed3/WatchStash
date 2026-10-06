@@ -5,9 +5,11 @@ import { AppError } from '../utils/AppError.js';
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
+// Seconds. TMDB refreshes trending and metadata daily, so those entries mirror
+// the upstream cadence; search reflects live user intent and stays short.
 const TTL = {
   search: 60 * 60,
-  trending: 60 * 60,
+  trending: 24 * 60 * 60,
   details: 24 * 60 * 60,
   genres: 24 * 60 * 60,
 };
