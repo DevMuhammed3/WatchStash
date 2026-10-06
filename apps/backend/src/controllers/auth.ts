@@ -122,8 +122,10 @@ export const Logout = asyncHandler(async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
 
   if (refreshToken) {
+    // The token hash is globally unique, so revoking by hash alone is enough
+    // and keeps logout working for sessions whose access token already expired.
     const tokenHash = hashToken(refreshToken);
-    await RefreshToken.updateOne({ token: tokenHash, user: req.user!.id }, { revoked: true });
+    await RefreshToken.updateOne({ token: tokenHash }, { revoked: true });
   }
 
   res.status(200).json({ status: 'success', message: 'Logged out successfully' });
