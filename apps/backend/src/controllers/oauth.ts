@@ -114,7 +114,8 @@ export const Callback = asyncHandler(async (req: Request, res: Response) => {
   // cookie is scoped to /api/auth so the browser only sends it back to us.
   setRefreshCookie(res, refreshToken);
 
-  res.redirect(
-    `${frontendOrigin}/auth/callback#access_token=${accessToken}&refresh_token=${refreshToken}`,
-  );
+  // Only the short-lived access token goes in the URL. The refresh token
+  // deliberately does not: fragments end up in browser history, proxy logs
+  // and Referer headers, and JavaScript must never be able to read it.
+  res.redirect(`${frontendOrigin}/auth/callback#access_token=${accessToken}`);
 });
