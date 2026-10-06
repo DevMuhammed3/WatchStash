@@ -22,10 +22,12 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+// Optional: the token normally travels in the httpOnly cookie
+// (see utils/refreshCookie.ts). The body is the legacy fallback.
 export const refreshSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
+  refreshToken: z.string().min(1).optional(),
 });
 
 export const logoutSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
+  refreshToken: z.string().min(1).optional(),
 });

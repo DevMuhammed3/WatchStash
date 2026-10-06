@@ -1,4 +1,5 @@
 import express, { type Express, type RequestHandler } from "express";
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
 import mongoSanitize from 'mongo-sanitize';
@@ -51,6 +52,7 @@ export default function App(): Express {
   app.use('/api/auth', authLimiter);
 
   app.use(express.json({ limit: '10kb' }));
+  app.use(cookieParser());
 
   app.use((req, _res, next) => {
     if (req.body) {

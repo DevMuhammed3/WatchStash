@@ -7,8 +7,19 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import type { IUser } from '../models/User.js';
 import { verifyRefreshToken, hashToken } from '../config/jwt.js';
 import { issueTokens } from '../utils/issueTokens.js';
+import {
+  readRefreshToken,
+  refreshTokenFromBody,
+  setRefreshCookie,
+  clearRefreshCookie,
+} from '../utils/refreshCookie.js';
 
 const BCRYPT_ROUNDS = 12;
+
+// A rotated refresh token stays acceptable for this long after rotation so a
+// double-submitted request (two tabs, or a response whose Set-Cookie never
+// arrived) cannot lock the client out of its own session.
+const ROTATION_GRACE_MS = 10_000;
 
 function userPayload(user: IUser) {
   return {
@@ -45,6 +56,7 @@ export const Register = asyncHandler(async (req: Request, res: Response) => {
   });
 
   const { accessToken, refreshToken } = await issueTokens(user._id);
+  setRefreshCookie(res, refreshToken);
 
   res.status(201).json({
     status: 'success',
@@ -73,6 +85,7 @@ export const Login = asyncHandler(async (req: Request, res: Response) => {
   await RefreshToken.updateMany({ user: user._id, revoked: false }, { revoked: true });
 
   const { accessToken, refreshToken } = await issueTokens(user._id);
+  setRefreshCookie(res, refreshToken);
 
   res.status(200).json({
     status: 'success',
@@ -83,25 +96,49 @@ export const Login = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const Refresh = asyncHandler(async (req: Request, res: Response) => {
-  const { refreshToken } = req.body;
+  const presented = readRefreshToken(req);
+  if (!presented) {
+    throw new AppError('Refresh token is required', 401);
+  }
 
   let decoded: { id: string };
   try {
-    decoded = verifyRefreshToken(refreshToken);
+    decoded = verifyRefreshToken(presented);
   } catch {
     throw new AppError('Invalid or expired refresh token', 401);
   }
 
-  const tokenHash = hashToken(refreshToken);
+  const tokenHash = hashToken(presented);
 
-  const storedToken = await RefreshToken.findOneAndUpdate(
+  let storedToken = await RefreshToken.findOneAndUpdate(
     { token: tokenHash, revoked: false, expiresAt: { $gt: new Date() } },
-    { revoked: true },
+    { revoked: true, rotatedAt: new Date() },
     { new: true },
   );
 
   if (!storedToken) {
-    throw new AppError('Refresh token has been revoked or expired', 401);
+    // Grace window: the same token arriving twice in quick succession means
+    // the first rotation's response may have been lost. Retire the token that
+    // rotation issued so no orphaned copy outlives this response, then issue
+    // a fresh pair below.
+    const recent = await RefreshToken.findOne({
+      token: tokenHash,
+      revoked: true,
+      rotatedAt: { $gte: new Date(Date.now() - ROTATION_GRACE_MS) },
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!recent) {
+      throw new AppError('Refresh token has been revoked or expired', 401);
+    }
+
+    storedToken = recent;
+    if (storedToken.replacedBy) {
+      await RefreshToken.updateOne(
+        { token: storedToken.replacedBy, revoked: false },
+        { revoked: true },
+      );
+    }
   }
 
   const user = await User.findById(decoded.id);
@@ -109,17 +146,22 @@ export const Refresh = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('User no longer exists', 401);
   }
 
-  const { accessToken, refreshToken: newRefreshToken } = await issueTokens(decoded.id);
+  const { accessToken, refreshToken, refreshTokenHash } = await issueTokens(decoded.id);
+  await RefreshToken.updateOne({ _id: storedToken._id }, { replacedBy: refreshTokenHash });
+  setRefreshCookie(res, refreshToken);
 
   res.status(200).json({
     status: 'success',
     accessToken,
-    refreshToken: newRefreshToken,
+    // Echo the token only for clients that sent it in the body (legacy
+    // localStorage flow). Cookie-based clients must never receive it, or XSS
+    // could bypass the httpOnly cookie by calling /refresh itself.
+    ...(refreshTokenFromBody(req) ? { refreshToken } : {}),
   });
 });
 
 export const Logout = asyncHandler(async (req: Request, res: Response) => {
-  const { refreshToken } = req.body;
+  const refreshToken = readRefreshToken(req);
 
   if (refreshToken) {
     // The token hash is globally unique, so revoking by hash alone is enough
@@ -127,6 +169,8 @@ export const Logout = asyncHandler(async (req: Request, res: Response) => {
     const tokenHash = hashToken(refreshToken);
     await RefreshToken.updateOne({ token: tokenHash }, { revoked: true });
   }
+
+  clearRefreshCookie(res);
 
   res.status(200).json({ status: 'success', message: 'Logged out successfully' });
 });

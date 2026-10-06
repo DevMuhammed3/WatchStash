@@ -6,6 +6,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { generateState, diagnoseState, generateCodeVerifier, generateCodeChallenge } from '../utils/oauthState.js';
 import logger from '../config/logger.js';
 import { issueTokens } from '../utils/issueTokens.js';
+import { setRefreshCookie } from '../utils/refreshCookie.js';
 import { findUniqueUsername } from '../utils/uniqueUsername.js';
 import type { OAuthProfile } from '../config/oauth.js';
 import {
@@ -108,6 +109,10 @@ export const Callback = asyncHandler(async (req: Request, res: Response) => {
 
   const env = envValuaCheck.parse(process.env);
   const frontendOrigin = env.FRONTEND_ORIGIN.replace(/\/+$/, '');
+
+  // Set the refresh cookie on the API origin before bouncing to the SPA; the
+  // cookie is scoped to /api/auth so the browser only sends it back to us.
+  setRefreshCookie(res, refreshToken);
 
   res.redirect(
     `${frontendOrigin}/auth/callback#access_token=${accessToken}&refresh_token=${refreshToken}`,

@@ -5,6 +5,8 @@ export interface IRefreshToken extends Document {
   user: Schema.Types.ObjectId;
   expiresAt: Date;
   revoked: boolean;
+  rotatedAt?: Date | null;
+  replacedBy?: string | null;
   createdAt: Date;
 }
 
@@ -27,6 +29,15 @@ const refreshTokenSchema = new Schema<IRefreshToken>(
     revoked: {
       type: Boolean,
       default: false,
+    },
+    // Set when the token is exchanged for a new one. `replacedBy` links to the
+    // hash issued in its place, so a double-submitted rotation inside the grace
+    // window can retire the orphaned copy instead of stranding the client.
+    rotatedAt: {
+      type: Date,
+    },
+    replacedBy: {
+      type: String,
     },
   },
   { timestamps: true },
