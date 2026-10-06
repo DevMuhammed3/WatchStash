@@ -91,14 +91,13 @@
   },
   "addMedia": {
     "title": "Add to stash",
-    "search": "Search",
-    "trending": "Trending",
     "searchPlaceholder": "Search movies, series or anime…",
     "backToResults": "Back to results",
     "type": "Type",
     "status": "Status",
     "typeToSearch": "Type a title to search",
-    "nothingTrending": "Nothing trending right now"
+    "nothingTrending": "Nothing trending right now",
+    "trendingNow": "Trending now"
   },
   "mobileGate": {
     "title": "WatchStash is coming to mobile",

@@ -43,11 +43,13 @@ export function AddMediaModal({ open, onClose, onAdded }: AddMediaModalProps) {
     label: tStatus(value),
   }));
 
-  const [tab, setTab] = useState<"search" | "trending">("search");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MediaSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trendingResults, setTrendingResults] = useState<MediaSearchResult[]>([]);
+  const [trendingLoading, setTrendingLoading] = useState(false);
+  const [trendingError, setTrendingError] = useState<string | null>(null);
   const [trendingLoaded, setTrendingLoaded] = useState(false);
 
   const [selected, setSelected] = useState<MediaSearchResult | null>(null);
@@ -59,13 +61,15 @@ export function AddMediaModal({ open, onClose, onAdded }: AddMediaModalProps) {
   const searchController = useRef<AbortController | null>(null);
 
   const reset = () => {
-    setTab("search");
     setQuery("");
     setResults([]);
     setSelected(null);
     setStatus(DEFAULT_STATUS);
     setError(null);
     setAddError(null);
+    setTrendingResults([]);
+    setTrendingLoading(false);
+    setTrendingError(null);
     setTrendingLoaded(false);
   };
 
@@ -85,28 +89,29 @@ export function AddMediaModal({ open, onClose, onAdded }: AddMediaModalProps) {
   };
 
   const loadTrending = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setTrendingLoading(true);
+    setTrendingError(null);
     try {
       const res = await apiFetch(`${API_BASE_URL}/api/media/trending?page=1`);
       if (!res.ok) throw new Error(await resolveError(res, tErrors("trendingFailed")));
       const data = (await res.json()) as MediaSearchResponse;
-      setResults(data.results);
+      setTrendingResults(data.results);
     } catch (e) {
-      setError(e instanceof Error ? e.message : tErrors("somethingWentWrong"));
+      setTrendingError(e instanceof Error ? e.message : tErrors("somethingWentWrong"));
     } finally {
-      setLoading(false);
+      setTrendingLoading(false);
     }
   }, [apiFetch, tErrors]);
 
+  // Fetch trending suggestions once each time the modal opens.
   useEffect(() => {
-    if (!open || tab !== "trending" || trendingLoaded) return;
+    if (!open || trendingLoaded) return;
     setTrendingLoaded(true);
     loadTrending();
-  }, [open, tab, trendingLoaded, loadTrending]);
+  }, [open, trendingLoaded, loadTrending]);
 
   useEffect(() => {
-    if (!open || tab !== "search") return;
+    if (!open) return;
     searchController.current?.abort();
 
     const trimmed = query.trim();
@@ -144,7 +149,7 @@ export function AddMediaModal({ open, onClose, onAdded }: AddMediaModalProps) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [open, tab, query, apiFetch, tErrors]);
+  }, [open, query, apiFetch, tErrors]);
 
   const openConfirm = (result: MediaSearchResult) => {
     setSelected(result);
@@ -186,6 +191,12 @@ export function AddMediaModal({ open, onClose, onAdded }: AddMediaModalProps) {
 
   const posterUrl = (path: string | null) => (path ? `${IMAGE_BASE_URL}${path}` : null);
 
+  // Empty query → show trending suggestions; typing → show search results.
+  const showTrending = query.trim().length === 0;
+  const visibleResults = showTrending ? trendingResults : results;
+  const listLoading = showTrending ? trendingLoading : loading;
+  const listError = showTrending ? trendingError : error;
+
   return (
     <Dialog
       open={open}
@@ -195,43 +206,18 @@ export function AddMediaModal({ open, onClose, onAdded }: AddMediaModalProps) {
       <div className="sticky top-0 z-10 border-b border-border bg-surface/95 p-4 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-primary">{t("title")}</h2>
-          <div className="flex items-center gap-1 rounded-xl border border-border bg-canvas p-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTab("search")}
-              className={`rounded-md! text-sm font-medium ${
-                tab === "search" ? "bg-accent/20! text-accent!" : "text-muted"
-              }`}
-            >
-              <Search className="h-3.5 w-3.5" />
-              {t("search")}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTab("trending")}
-              className={`rounded-md! text-sm font-medium ${
-                tab === "trending" ? "bg-accent/20! text-accent!" : "text-muted"
-              }`}
-            >
-              <TrendingUp className="h-3.5 w-3.5" />
-              {t("trending")}
-            </Button>
-          </div>
         </div>
 
-        {tab === "search" && (
-          <div className="mt-3">
-            <Input
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("searchPlaceholder")}
-              className="bg-canvas"
-            />
-          </div>
-        )}
+        <div className="relative mt-3">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <Input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("searchPlaceholder")}
+            className="bg-canvas pl-9"
+          />
+        </div>
       </div>
 
       <div className="p-4">
@@ -357,21 +343,32 @@ export function AddMediaModal({ open, onClose, onAdded }: AddMediaModalProps) {
           </div>
         ) : (
           <>
-            {loading ? (
+            {showTrending && !listLoading && !listError && visibleResults.length > 0 && (
+              <div className="mb-4 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-accent" />
+                <h3 className="text-sm font-semibold text-primary">{t("trendingNow")}</h3>
+              </div>
+            )}
+            {listLoading ? (
               <div className="flex items-center justify-center py-16">
                 <p className="text-sm text-muted">{tCommon("loading")}</p>
               </div>
-            ) : error ? (
-              <p className="py-16 text-center text-sm text-red-400">{error}</p>
-            ) : results.length === 0 ? (
+            ) : listError ? (
+              <div className="flex flex-col items-center gap-3 py-16 text-center">
+                <p className="text-sm text-red-400">{listError}</p>
+                {showTrending && (
+                  <Button variant="secondary" size="sm" onClick={() => loadTrending()}>
+                    {tCommon("tryAgain")}
+                  </Button>
+                )}
+              </div>
+            ) : visibleResults.length === 0 ? (
               <p className="py-16 text-center text-sm text-muted">
-                {tab === "search"
-                  ? t("typeToSearch")
-                  : t("nothingTrending")}
+                {showTrending ? t("nothingTrending") : t("typeToSearch")}
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {results.map((result) => (
+                {visibleResults.map((result) => (
                   <button
                     key={`${result.provider}-${result.id}`}
                     type="button"
