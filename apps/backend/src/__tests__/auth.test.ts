@@ -8,22 +8,59 @@ import { Follow } from '../models/Follow.js';
 import { Movie } from '../models/Movie.js';
 import { StashItem } from '../models/StashItem.js';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/watchstash_test';
 const JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test_refresh_secret';
+
+/**
+ * This suite deletes documents in `afterAll`, so it must never touch the
+ * database the app uses. `bun test` loads .env, which means
+ * process.env.MONGODB_URI is the *shared dev* database — always derive a
+ * dedicated `watchstash_test` database from it instead (or point
+ * MONGODB_TEST_URI at your own scratch database).
+ */
+function testDatabaseUri(): string {
+  if (process.env.MONGODB_TEST_URI) return process.env.MONGODB_TEST_URI;
+
+  const uri = process.env.MONGODB_URI;
+  if (!uri) return 'mongodb://localhost:27017/watchstash_test';
+
+  const [base, query] = uri.split('?');
+  const authorityEnd = base.lastIndexOf('@');
+  const lastSlash = base.lastIndexOf('/');
+  // A URI like `mongodb+srv://user:pass@host/?...` has no database path at
+  // all, while `...host/existing_db` has to have that name replaced.
+  const withoutDatabase =
+    lastSlash > authorityEnd ? base.slice(0, lastSlash) : base.replace(/\/$/, '');
+  return `${withoutDatabase}/watchstash_test${query ? `?${query}` : ''}`;
+}
+
+const MONGODB_URI = testDatabaseUri();
 
 beforeAll(async () => {
   process.env.JWT_SECRET = JWT_SECRET;
   process.env.JWT_REFRESH_SECRET = JWT_REFRESH_SECRET;
   await mongoose.connect(MONGODB_URI);
+  // Wait for mongoose to finish building indexes: the unique-key tests below
+  // are meaningless before the username/email indexes exist, and on a fresh
+  // database that build happens asynchronously after connect.
+  await User.init();
+  await RefreshToken.init();
 });
 
 afterAll(async () => {
-  await User.deleteMany({});
-  await RefreshToken.deleteMany({});
-  await Follow.deleteMany({});
-  await Movie.deleteMany({});
-  await StashItem.deleteMany({});
+  // Refuse to wipe anything that is not the dedicated scratch database: a
+  // misconfigured MONGODB_TEST_URI should leave data alone and fail loudly
+  // instead of emptying the shared dev database.
+  const databaseName = mongoose.connection.db?.databaseName;
+  if (databaseName === 'watchstash_test') {
+    await User.deleteMany({});
+    await RefreshToken.deleteMany({});
+    await Follow.deleteMany({});
+    await Movie.deleteMany({});
+    await StashItem.deleteMany({});
+  } else {
+    console.warn(`Skipping test cleanup: "${databaseName}" is not the test database`);
+  }
   await mongoose.connection.close();
 });
 
