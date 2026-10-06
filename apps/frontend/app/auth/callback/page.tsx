@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Clapperboard, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { setTokens } from "@/lib/auth";
+import { setAccessToken } from "@/lib/auth";
 
 export default function AuthCallbackPage() {
   const t = useTranslations("authCallback");
@@ -14,7 +14,6 @@ export default function AuthCallbackPage() {
     const hash = window.location.hash.slice(1);
     const params = new URLSearchParams(hash);
     const accessToken = params.get("access_token");
-    const refreshToken = params.get("refresh_token");
     const errorParam = params.get("error");
 
     if (errorParam) {
@@ -22,8 +21,10 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    if (accessToken && refreshToken) {
-      setTokens(accessToken, refreshToken);
+    // Only the access token travels in the URL; the refresh token arrives in
+    // the httpOnly cookie that the OAuth callback set on the API origin.
+    if (accessToken) {
+      setAccessToken(accessToken);
       window.location.replace("/");
       return;
     }

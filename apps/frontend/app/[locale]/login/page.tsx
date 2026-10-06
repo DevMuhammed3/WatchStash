@@ -79,7 +79,6 @@ export default function LoginPage() {
 
       const data = (await res.json()) as {
         accessToken?: string;
-        refreshToken?: string;
         user?: UserProfile;
         message?: string;
       };
@@ -92,12 +91,12 @@ export default function LoginPage() {
         return;
       }
 
-      if (!data.accessToken || !data.refreshToken) {
+      if (!data.accessToken) {
         setError(tErrors("unexpectedResponse"));
         return;
       }
 
-      await completeAuth(data.accessToken, data.refreshToken, data.user);
+      await completeAuth(data.accessToken, data.user);
     } catch {
       setError(tErrors("networkError"));
     } finally {
