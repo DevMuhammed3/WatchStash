@@ -37,12 +37,24 @@ export function generateAccessToken(userId: string): string {
 }
 
 export function generateRefreshToken(userId: string): string {
-  return jwt.sign({ id: userId }, requireSecret('JWT_REFRESH_SECRET'), {
-    expiresIn: `${REFRESH_TOKEN_EXPIRY_DAYS}d`,
-    algorithm: JWT_ALGORITHM,
-    issuer: JWT_ISSUER,
-    audience: JWT_AUDIENCE,
-  });
+  return jwt.sign(
+    {
+      id: userId,
+      // The payload would otherwise be deterministic: a second token issued
+      // to the same user within the same second would be byte-identical,
+      // which defeats rotation entirely (the "old" hash would match a
+      // freshly issued, still-valid row). A unique jti makes every issuance
+      // distinct.
+      jti: crypto.randomUUID(),
+    },
+    requireSecret('JWT_REFRESH_SECRET'),
+    {
+      expiresIn: `${REFRESH_TOKEN_EXPIRY_DAYS}d`,
+      algorithm: JWT_ALGORITHM,
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    },
+  );
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {
