@@ -10,6 +10,7 @@ import icon from "../../../public/512×512_icon.png";
 import loginBg from "../../../public/login_bg.png";
 import { API_BASE_URL, oauthAuthorizeUrl } from "@/lib/auth";
 import { Button, Input } from "@watchstash/ui";
+import { RouteGuard } from "@/components/RouteGuard";
 import { GoogleIcon, GitHubIcon, FacebookIcon, XIcon } from "@/components/brand-icons";
 import type { OAuthProvider, UserProfile } from "@watchstash/types";
 
@@ -48,11 +49,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      router.replace("/");
-    }
-  }, [status, router]);
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -108,7 +104,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-3">
+    <RouteGuard policy="guest">
+      <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-3">
       <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
         <Image
           src={loginBg}
@@ -349,5 +346,6 @@ export default function LoginPage() {
         </p>
       </div>
     </main>
+    </RouteGuard>
   );
 }
