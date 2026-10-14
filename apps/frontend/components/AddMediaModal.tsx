@@ -28,9 +28,10 @@ interface AddMediaModalProps {
   open: boolean;
   onClose: () => void;
   onAdded: (item: MediaItem) => void;
+  initialResult?: MediaSearchResult | null;
 }
 
-export function AddMediaModal({ open, onClose, onAdded }: AddMediaModalProps) {
+export function AddMediaModal({ open, onClose, onAdded, initialResult }: AddMediaModalProps) {
   const { apiFetch } = useAuth();
   const tType = useTranslations("type");
   const tStatus = useTranslations("status");
@@ -103,12 +104,23 @@ export function AddMediaModal({ open, onClose, onAdded }: AddMediaModalProps) {
     }
   }, [apiFetch, tErrors]);
 
+  // Seed the confirmation step when the modal is opened from a discovery card.
+  useEffect(() => {
+    if (!open || !initialResult) return;
+    setSelected(initialResult);
+    setType(initialResult.mediaType === "movie" ? "movie" : "series");
+    setStatus(DEFAULT_STATUS);
+    setAddError(null);
+    setQuery("");
+    setResults([]);
+  }, [open, initialResult]);
+
   // Fetch trending suggestions once each time the modal opens.
   useEffect(() => {
-    if (!open || trendingLoaded) return;
+    if (!open || trendingLoaded || initialResult) return;
     setTrendingLoaded(true);
     loadTrending();
-  }, [open, trendingLoaded, loadTrending]);
+  }, [open, trendingLoaded, initialResult, loadTrending]);
 
   useEffect(() => {
     if (!open) return;
