@@ -10,6 +10,11 @@ export const trendingQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(500).optional().default(1),
 });
 
+export const popularQuerySchema = z.object({
+  mediaType: z.enum(['movie', 'tv']),
+  page: z.coerce.number().int().min(1).max(500).optional().default(1),
+});
+
 export const stashItemBodySchema = z.object({
   provider: z.enum(['tmdb']),
   externalId: z.string().trim().min(1),

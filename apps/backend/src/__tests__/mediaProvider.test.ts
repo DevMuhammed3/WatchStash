@@ -85,6 +85,8 @@ const stub: FetchStub = async (input) => {
   if (path === '/genre/tv/list') return json({ genres: tvGenres });
   if (path === '/search/multi') return json(searchResponse);
   if (path === '/trending/all/week') return json({ page: 1, total_pages: 1, total_results: 1, results: [searchResponse.results[0]] });
+  if (path === '/movie/popular') return json({ page: 1, total_pages: 1, total_results: 1, results: [searchResponse.results[0]] });
+  if (path === '/tv/popular') return json({ page: 1, total_pages: 1, total_results: 1, results: [searchResponse.results[1]] });
   if (path === '/movie/999') return notFound();
   if (path.startsWith('/movie/')) return json(starWarsMovie);
   if (path.startsWith('/tv/')) return json(narutoTv);
@@ -142,6 +144,32 @@ describe('tmdbProvider.search', () => {
 
     expect(counts['/search/multi']).toBe(1);
     expect(counts['/genre/movie/list'] ?? 0).toBeLessThan(2);
+  });
+});
+
+describe('tmdbProvider.popular', () => {
+  test('normalizes movie popular results when TMDB omits media_type', async () => {
+    const response = await tmdbProvider.popular('movie');
+
+    expect(response.results).toHaveLength(1);
+    expect(response.results[0]).toMatchObject({
+      provider: 'tmdb',
+      id: '11',
+      mediaType: 'movie',
+      title: 'Star Wars',
+    });
+  });
+
+  test('normalizes tv popular results when TMDB omits media_type', async () => {
+    const response = await tmdbProvider.popular('tv');
+
+    expect(response.results).toHaveLength(1);
+    expect(response.results[0]).toMatchObject({
+      provider: 'tmdb',
+      id: '1399',
+      mediaType: 'tv',
+      title: 'Game of Thrones',
+    });
   });
 });
 

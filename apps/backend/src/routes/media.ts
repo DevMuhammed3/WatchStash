@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   searchMedia,
   trendingMedia,
+  popularMedia,
   mediaDetails,
   getStashItems,
   createStashFromProvider,
@@ -11,7 +12,7 @@ import {
 import { authenticate } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createRateLimit } from '../config/upstash.js';
-import { searchTmdbQuerySchema, trendingQuerySchema, stashItemBodySchema, updateStashItemSchema } from '../validations/media.js';
+import { searchTmdbQuerySchema, trendingQuerySchema, popularQuerySchema, stashItemBodySchema, updateStashItemSchema } from '../validations/media.js';
 
 export const mediaRouter: Router = Router();
 export const stashRouter: Router = Router();
@@ -25,6 +26,7 @@ const stashWriteLimiter = createRateLimit({ id: 'user', limit: 100, window: '15 
 
 mediaRouter.get('/search', mediaReadLimiter, validate(searchTmdbQuerySchema, 'query'), searchMedia);
 mediaRouter.get('/trending', mediaReadLimiter, validate(trendingQuerySchema, 'query'), trendingMedia);
+mediaRouter.get('/popular', mediaReadLimiter, validate(popularQuerySchema, 'query'), popularMedia);
 mediaRouter.get('/details/:provider/:id', mediaReadLimiter, mediaDetails);
 
 stashRouter.get('/', stashReadLimiter, getStashItems);
