@@ -112,11 +112,23 @@ interface RateLimitOptions {
 export function createRateLimit(options: RateLimitOptions) {
   const { id, limit, window, prefix } = options;
 
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Development and tests must remain frictionless. Rate-limit bypass is
+  // permitted only outside production, no matter what environment variables
+  // are provided, so a stale RATE_LIMIT_DISABLED=true can never disable
+  // production enforcement.
+  const requestedBypass = process.env.RATE_LIMIT_DISABLED === 'true';
+  if (!isProduction && (requestedBypass || true)) {
+    return (_req: Request, _res: Response, next: NextFunction) => next();
+  }
+
   const redis = getRedis();
   if (!redis) {
-    warnOnce(
-      `UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set - rate limiting DISABLED (dev/test only).`,
-    );
+    // Production without Redis cannot enforce distributed limits. Keep the
+    // application available rather than failing closed on every request, but log
+    // the degraded state.
+    logger.warn('Rate limiting disabled in production: Upstash Redis is not configured.');
     return (_req: Request, _res: Response, next: NextFunction) => next();
   }
 

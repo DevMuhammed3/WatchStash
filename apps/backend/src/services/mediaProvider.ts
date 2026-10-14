@@ -10,6 +10,7 @@ const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 const TTL = {
   search: 60 * 60,
   trending: 24 * 60 * 60,
+  popular: 24 * 60 * 60,
   details: 24 * 60 * 60,
   genres: 24 * 60 * 60,
 };
@@ -107,8 +108,9 @@ function normalizeListCard(
   item: TmdbListCard,
   movieGenres: Map<number, string>,
   tvGenres: Map<number, string>,
+  defaultMediaType?: 'movie' | 'tv',
 ): MediaSearchResult | null {
-  const mediaType = toMediaType(item.media_type);
+  const mediaType = toMediaType(item.media_type ?? defaultMediaType);
   if (!mediaType) return null;
 
   const genreLookup = mediaType === 'tv' ? tvGenres : movieGenres;
@@ -161,13 +163,14 @@ async function genreMap(type: 'movie' | 'tv'): Promise<Map<number, string>> {
 async function listPage(
   key: string,
   fetchPage: () => Promise<TmdbPage<TmdbListCard>>,
+  defaultMediaType?: 'movie' | 'tv',
 ): Promise<MediaSearchResponse> {
   return cacheWrap(
     key,
     async () => {
       const [page, movieGenres, tvGenres] = await Promise.all([fetchPage(), genreMap('movie'), genreMap('tv')]);
       const results = page.results
-        .map((item) => normalizeListCard(item, movieGenres, tvGenres))
+        .map((item) => normalizeListCard(item, movieGenres, tvGenres, defaultMediaType))
         .filter((item): item is MediaSearchResult => item !== null);
       return {
         page: page.page,
@@ -184,6 +187,7 @@ export interface MediaProvider {
   readonly id: ProviderId;
   search(query: string, page?: number): Promise<MediaSearchResponse>;
   trending(page?: number): Promise<MediaSearchResponse>;
+  popular(mediaType: 'movie' | 'tv', page?: number): Promise<MediaSearchResponse>;
   details(externalId: string, type?: 'movie' | 'tv'): Promise<MediaDetails>;
   imageUrl(path: string | null, size?: string): string | null;
 }
@@ -200,6 +204,15 @@ export const tmdbProvider: MediaProvider = {
   trending(page = 1) {
     return listPage(`media:trending:${page}`, () =>
       tmdbFetch<TmdbPage<TmdbListCard>>('/trending/all/week', { page }),
+    );
+  },
+
+  popular(mediaType: 'movie' | 'tv', page = 1) {
+    const path = mediaType === 'movie' ? '/movie/popular' : '/tv/popular';
+    return listPage(
+      `media:popular:${mediaType}:${page}`,
+      () => tmdbFetch<TmdbPage<TmdbListCard>>(path, { page }),
+      mediaType,
     );
   },
 

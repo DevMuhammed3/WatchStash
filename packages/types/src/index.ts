@@ -7,8 +7,8 @@ export type OAuthProviderIdKey = "googleId" | "githubId" | "facebookId" | "twitt
 export const STATUS_ORDER = [
   "plan_to_watch",
   "watching",
-  "on_hold",
   "completed",
+  "on_hold",
 ] as const;
 
 export type MediaStatus = (typeof STATUS_ORDER)[number];

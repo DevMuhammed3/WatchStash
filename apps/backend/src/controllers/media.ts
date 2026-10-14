@@ -47,6 +47,13 @@ export const trendingMedia = asyncHandler(async (req: Request, res: Response) =>
   res.status(200).json({ status: 'success', ...response });
 });
 
+export const popularMedia = asyncHandler(async (req: Request, res: Response) => {
+  const mediaType = req.query.mediaType === 'movie' ? 'movie' : 'tv';
+  const page = Number(req.query.page || 1);
+  const response = await tmdbProvider.popular(mediaType, page);
+  res.status(200).json({ status: 'success', ...response });
+});
+
 export const mediaDetails = asyncHandler(async (req: Request, res: Response) => {
   const provider = String(req.params.provider);
   const id = String(req.params.id);

@@ -120,36 +120,32 @@ export default async function LocaleLayout({
   const t = await getTranslations({ locale, namespace: "metadata" });
 
   return (
-    <html lang={locale} className="dark">
-      <body
-        className={`${inter.variable} ${bebasNeue.variable} min-h-screen bg-canvas font-sans text-primary antialiased`}
-      >
-        <NextIntlClientProvider locale={locale}>
-          <MobileGate />
-          <AuthProvider>{children}</AuthProvider>
-        </NextIntlClientProvider>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              name: "WatchStash",
-              description: t("description"),
-              applicationCategory: "EntertainmentApplication",
-              operatingSystem: "Web",
-              url: SITE_URL,
-              image: `${SITE_URL}${icon.src}`,
-              offers: {
-                "@type": "Offer",
-                price: "0",
-                priceCurrency: "USD",
-              },
-            }),
-          }}
-        />
-        <Analytics />
-      </body>
-    </html>
+    <div className={`${inter.variable} ${bebasNeue.variable}`}>
+      <NextIntlClientProvider locale={locale}>
+        <MobileGate />
+        <AuthProvider>{children}</AuthProvider>
+      </NextIntlClientProvider>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "WatchStash",
+            description: t("description"),
+            applicationCategory: "EntertainmentApplication",
+            operatingSystem: "Web",
+            url: SITE_URL,
+            image: `${SITE_URL}${icon.src}`,
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "USD",
+            },
+          }),
+        }}
+      />
+      <Analytics />
+    </div>
   );
 }
