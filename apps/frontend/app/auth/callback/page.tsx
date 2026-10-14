@@ -25,7 +25,7 @@ export default function AuthCallbackPage() {
     // the httpOnly cookie that the OAuth callback set on the API origin.
     if (accessToken) {
       setAccessToken(accessToken);
-      window.location.replace("/");
+      window.location.replace("/app");
       return;
     }
 
