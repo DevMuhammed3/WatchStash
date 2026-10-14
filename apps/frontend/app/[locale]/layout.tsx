@@ -9,6 +9,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { MobileGate } from "@/components/MobileGate";
 import favicon from "../../public/16X16_icon.png";
 import icon from "../../public/512×512_icon.png";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -147,6 +148,7 @@ export default async function LocaleLayout({
             }),
           }}
         />
+        <Analytics />
       </body>
     </html>
   );
