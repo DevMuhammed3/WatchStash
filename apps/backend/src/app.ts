@@ -38,7 +38,13 @@ export default function App(): Express {
     }),
   );
 
-  app.get('/health', (_req, res) => {
+  app.get('/health', async (_req, res) => {
+    // Drive the (lazy) connection so a cold instance reports a real state
+    // instead of "disconnected" for the first half minute of its life.
+    await connectDB().catch((error: unknown) => {
+      logger.error(`MongoDB connection failed: ${(error as Error).message}`);
+    });
+
     const dbState = mongoose.connection.readyState;
     const isHealthy = dbState === 1;
 
