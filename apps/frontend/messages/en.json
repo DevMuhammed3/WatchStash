@@ -8,6 +8,13 @@
     "comingSoon": "Coming soon",
     "backToSignIn": "Back to sign in"
   },
+  "nav": {
+    "primary": "Primary",
+    "discover": "Discover",
+    "tracker": "My Tracker",
+    "accountMenu": "Account menu",
+    "settings": "Settings"
+  },
   "home": {
     "tagline": "Your personal media collection",
     "loading": "Loading your stash…",
