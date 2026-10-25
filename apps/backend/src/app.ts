@@ -13,6 +13,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { createRateLimit } from './config/upstash.js';
 import logger from './config/logger.js';
 import { requestId } from './middleware/requestId.js';
+import { connectDB } from './config/db.js';
 
 const pinoMiddleware = (pinoHttp as any)({ logger }) as RequestHandler;
 
@@ -73,6 +74,33 @@ export default function App(): Express {
       status: 'success',
       message: 'WatchStash API is up and running!',
     });
+  });
+
+  // Every data-backed route needs MongoDB, and on Vercel the connection is
+  // established per instance. Awaiting it here makes the first request after a
+  // cold start wait for a real connection instead of filling Mongoose's command
+  // buffer and failing with a generic 500 ten seconds later. The OAuth
+  // authorize hop never touches the database, so it is excluded to keep the
+  // Google/GitHub redirect working during a database hiccup.
+  const oauthAuthorizePath = /^\/auth\/oauth\/[^/]+\/authorize\/?$/;
+  app.use('/api', async (req, res, next) => {
+    if (req.method === 'GET' && oauthAuthorizePath.test(req.path)) {
+      next();
+      return;
+    }
+
+    try {
+      await connectDB();
+      next();
+    } catch (error) {
+      logger.error(
+        `Database unavailable for ${req.method} ${req.originalUrl}: ${(error as Error).message}`,
+      );
+      res.status(503).json({
+        status: 'error',
+        message: 'Database temporarily unavailable. Please try again.',
+      });
+    }
   });
 
   app.use('/api/auth', authRoutes);
