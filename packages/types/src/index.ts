@@ -115,7 +115,19 @@ export interface User {
   updatedAt: string;
 }
 
-export type UserProfile = Omit<User, "providers" | "followersCount" | "followingCount">;
+export type UserProfile = Omit<User, "providers" | "followersCount" | "followingCount"> & {
+  /** Whether the account has a password set (false for OAuth-only accounts). */
+  hasPassword: boolean;
+  /** Which sign-in providers are linked to this account. */
+  providers: ConnectedProviders;
+};
+
+export interface ConnectedProviders {
+  google: boolean;
+  github: boolean;
+  facebook: boolean;
+  twitter: boolean;
+}
 
 export interface AuthPayload {
   id: string;

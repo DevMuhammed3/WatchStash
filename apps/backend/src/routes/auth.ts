@@ -1,9 +1,27 @@
 import { Router } from 'express';
-import { Register, Login, Refresh, Logout, Me } from '../controllers/auth.js';
+import {
+  Register,
+  Login,
+  Refresh,
+  Logout,
+  Me,
+  UpdateMe,
+  ChangePassword,
+  LogoutOtherSessions,
+  DeleteMe,
+} from '../controllers/auth.js';
 import { authenticate } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { requireSameOrigin } from '../middleware/requireSameOrigin.js';
-import { registerSchema, loginSchema, refreshSchema, logoutSchema } from '../validations/auth.js';
+import {
+  registerSchema,
+  loginSchema,
+  refreshSchema,
+  logoutSchema,
+  updateProfileSchema,
+  changePasswordSchema,
+  deleteAccountSchema,
+} from '../validations/auth.js';
 
 const router: Router = Router();
 
@@ -15,5 +33,15 @@ router.post('/refresh', requireSameOrigin, validate(refreshSchema), Refresh);
 // refresh token unrevoked (it stays valid for up to 7 days).
 router.post('/logout', requireSameOrigin, validate(logoutSchema), Logout);
 router.get('/me', authenticate, Me);
+router.patch('/me', requireSameOrigin, authenticate, validate(updateProfileSchema), UpdateMe);
+router.delete('/me', requireSameOrigin, authenticate, validate(deleteAccountSchema), DeleteMe);
+router.post(
+  '/change-password',
+  requireSameOrigin,
+  authenticate,
+  validate(changePasswordSchema),
+  ChangePassword,
+);
+router.post('/logout-others', requireSameOrigin, authenticate, LogoutOtherSessions);
 
 export default router;

@@ -29,6 +29,16 @@ function userPayload(user: IUser) {
     email: user.email,
     bio: user.bio,
     avatarUrl: user.avatarUrl,
+    // Derive from the hash rather than the flag: accounts created before
+    // `hasPassword` existed hydrate with the default `false` but still have a
+    // password and must not be offered the OAuth-only "set a password" flow.
+    hasPassword: Boolean(user.passwordHash),
+    providers: {
+      google: Boolean(user.providers?.googleId),
+      github: Boolean(user.providers?.githubId),
+      facebook: Boolean(user.providers?.facebookId),
+      twitter: Boolean(user.providers?.twitterId),
+    },
   };
 }
 
@@ -73,7 +83,7 @@ export const Login = asyncHandler(async (req: Request, res: Response) => {
     $or: [{ email: identifier.toLowerCase() }, { username: identifier.toLowerCase() }],
   });
 
-  if (!user || !user.hasPassword || !user.passwordHash) {
+  if (!user || !user.passwordHash) {
     throw new AppError('Invalid email/username or password', 401);
   }
 
@@ -176,11 +186,132 @@ export const Logout = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const Me = asyncHandler(async (req: Request, res: Response) => {
-  const user = await User.findById(req.user!.id).select('-passwordHash');
+  // Keep `passwordHash` in the document so the payload can derive
+  // `hasPassword` for accounts created before the flag existed; `userPayload`
+  // never copies it into the response.
+  const user = await User.findById(req.user!.id);
 
   if (!user) {
     throw new AppError('User not found', 404);
   }
 
   res.status(200).json({ status: 'success', user: userPayload(user) });
+});
+
+export const UpdateMe = asyncHandler(async (req: Request, res: Response) => {
+  const user = await User.findById(req.user!.id);
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  const { displayName, username, bio, avatarUrl } = req.body as {
+    displayName?: string;
+    username?: string;
+    bio?: string;
+    avatarUrl?: string;
+  };
+
+  if (username && username !== user.username) {
+    const taken = await User.exists({ username, _id: { $ne: user._id } });
+    if (taken) {
+      throw new AppError('Username already in use', 409);
+    }
+    user.username = username;
+  }
+
+  if (displayName !== undefined) user.displayName = displayName;
+  if (bio !== undefined) user.bio = bio;
+  if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
+
+  await user.save();
+
+  res.status(200).json({ status: 'success', user: userPayload(user) });
+});
+
+export const ChangePassword = asyncHandler(async (req: Request, res: Response) => {
+  const user = await User.findById(req.user!.id);
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  const { currentPassword, newPassword } = req.body as {
+    currentPassword?: string;
+    newPassword: string;
+  };
+
+  // OAuth-only accounts have no password yet, so they may set one directly.
+  // Accounts that already have one must prove they know it.
+  const isSettingPassword = !user.passwordHash;
+  if (user.passwordHash) {
+    if (!currentPassword) {
+      throw new AppError('Current password is required', 400);
+    }
+    if (!user.passwordHash || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      throw new AppError('Current password is incorrect', 401);
+    }
+  }
+
+  const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);
+  user.passwordHash = await bcrypt.hash(newPassword, salt);
+  user.hasPassword = true;
+  await user.save();
+
+  // A password change is a security event: retire every other session so a
+  // stolen refresh token cannot outlive it, while keeping this browser signed in.
+  const currentToken = readRefreshToken(req);
+  const currentHash = currentToken ? hashToken(currentToken) : null;
+  await RefreshToken.updateMany(
+    currentHash
+      ? { user: user._id, token: { $ne: currentHash } }
+      : { user: user._id },
+    { revoked: true },
+  );
+
+  res.status(200).json({
+    status: 'success',
+    message: isSettingPassword ? 'Password set successfully' : 'Password updated successfully',
+    user: userPayload(user),
+  });
+});
+
+export const LogoutOtherSessions = asyncHandler(async (req: Request, res: Response) => {
+  const currentToken = readRefreshToken(req);
+  const currentHash = currentToken ? hashToken(currentToken) : null;
+
+  const result = await RefreshToken.updateMany(
+    {
+      user: req.user!.id,
+      revoked: false,
+      ...(currentHash ? { token: { $ne: currentHash } } : {}),
+    },
+    { revoked: true },
+  );
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Other sessions signed out',
+    revoked: result.modifiedCount,
+  });
+});
+
+export const DeleteMe = asyncHandler(async (req: Request, res: Response) => {
+  const user = await User.findById(req.user!.id);
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  const { username } = req.body as { username: string };
+  if (username.toLowerCase() !== user.username.toLowerCase()) {
+    throw new AppError('Username does not match', 400);
+  }
+
+  // Document middleware on the User model cascades stash items, movies,
+  // refresh tokens, and follows before the account row is removed.
+  await user.deleteOne();
+  clearRefreshCookie(res);
+
+  res.status(200).json({ status: 'success', message: 'Account deleted' });
 });
