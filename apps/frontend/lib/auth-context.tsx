@@ -26,6 +26,7 @@ interface AuthContextValue {
   apiFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
   completeAuth: (accessToken: string, user?: UserProfile) => Promise<void>;
   retrySession: () => void;
+  updateUser: (user: UserProfile) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -136,6 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void restoreSession();
   }, [restoreSession]);
 
+  const updateUser = useCallback((nextUser: UserProfile) => {
+    setUser(nextUser);
+    setStatus("authenticated");
+  }, []);
+
   const completeAuth = useCallback(
     async (accessToken: string, user?: UserProfile) => {
       setAccessToken(accessToken);
@@ -214,8 +220,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ user, status, logout, apiFetch, completeAuth, retrySession }),
-    [user, status, logout, apiFetch, completeAuth, retrySession],
+    () => ({ user, status, logout, apiFetch, completeAuth, retrySession, updateUser }),
+    [user, status, logout, apiFetch, completeAuth, retrySession, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

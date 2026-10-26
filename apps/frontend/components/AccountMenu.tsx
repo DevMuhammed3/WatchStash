@@ -197,21 +197,15 @@ export function AccountMenu({
               <Film aria-hidden className="h-4 w-4" />
               {tNav("tracker")}
             </Link>
-            <button
-              type="button"
+            <Link
+              href="/app/settings"
               role="menuitem"
-              disabled
-              aria-disabled="true"
-              className="flex h-9 w-full cursor-not-allowed items-center justify-between gap-3 rounded-lg px-2.5 text-sm text-muted/60"
+              onClick={() => setOpen(false)}
+              className="flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm text-secondary transition-colors hover:bg-white/[0.06] hover:text-primary focus-visible:bg-white/[0.06] focus-visible:text-primary focus-visible:outline-none"
             >
-              <span className="flex items-center gap-2.5">
-                <Settings aria-hidden className="h-4 w-4" />
-                {tNav("settings")}
-              </span>
-              <span className="rounded-full border border-border/70 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted/70">
-                {tCommon("comingSoon")}
-              </span>
-            </button>
+              <Settings aria-hidden className="h-4 w-4" />
+              {tNav("settings")}
+            </Link>
           </div>
 
           <div role="separator" className="border-t border-border/70" />
