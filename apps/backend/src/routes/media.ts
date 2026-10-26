@@ -4,6 +4,7 @@ import {
   trendingMedia,
   popularMedia,
   mediaDetails,
+  showcaseMedia,
   getStashItems,
   createStashFromProvider,
   updateStashItem,
@@ -15,14 +16,18 @@ import { createRateLimit } from '../config/upstash.js';
 import { searchTmdbQuerySchema, trendingQuerySchema, popularQuerySchema, stashItemBodySchema, updateStashItemSchema } from '../validations/media.js';
 
 export const mediaRouter: Router = Router();
+export const publicMediaRouter: Router = Router();
 export const stashRouter: Router = Router();
 
 mediaRouter.use(authenticate);
 stashRouter.use(authenticate);
 
 const mediaReadLimiter = createRateLimit({ id: 'user', limit: 100, window: '15 m', prefix: 'rl:media' });
+const showcaseReadLimiter = createRateLimit({ id: 'ip', limit: 60, window: '15 m', prefix: 'rl:media:showcase' });
 const stashReadLimiter = createRateLimit({ id: 'user', limit: 100, window: '15 m', prefix: 'rl:stash:read' });
 const stashWriteLimiter = createRateLimit({ id: 'user', limit: 100, window: '15 m', prefix: 'rl:stash:write' });
+
+publicMediaRouter.get('/showcase', showcaseReadLimiter, showcaseMedia);
 
 mediaRouter.get('/search', mediaReadLimiter, validate(searchTmdbQuerySchema, 'query'), searchMedia);
 mediaRouter.get('/trending', mediaReadLimiter, validate(trendingQuerySchema, 'query'), trendingMedia);

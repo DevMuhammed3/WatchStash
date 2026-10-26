@@ -54,6 +54,30 @@ export const popularMedia = asyncHandler(async (req: Request, res: Response) => 
   res.status(200).json({ status: 'success', ...response });
 });
 
+/**
+ * Public, auth-free selection used by the marketing landing page. It only
+ * exposes metadata TMDB already publishes, so there is nothing user-specific
+ * to protect, and it lets the hero show real artwork before anyone signs in.
+ */
+export const showcaseMedia = asyncHandler(async (_req: Request, res: Response) => {
+  const response = await tmdbProvider.trending(1);
+  const results = response.results
+    .filter((item) => item.posterPath)
+    .slice(0, 6)
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      mediaType: item.mediaType,
+      posterUrl: tmdbProvider.imageUrl(item.posterPath, 'w342'),
+      year: item.year,
+      voteAverage: item.voteAverage,
+      voteCount: item.voteCount,
+    }));
+
+  res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+  res.status(200).json({ status: 'success', results });
+});
+
 export const mediaDetails = asyncHandler(async (req: Request, res: Response) => {
   const provider = String(req.params.provider);
   const id = String(req.params.id);

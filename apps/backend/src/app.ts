@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';
 import oauthRoutes from './routes/oauth.js';
 import movieRoutes from './routes/movie.js';
-import { mediaRouter, stashRouter } from './routes/media.js';
+import { mediaRouter, publicMediaRouter, stashRouter } from './routes/media.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { createRateLimit } from './config/upstash.js';
 import logger from './config/logger.js';
@@ -81,6 +81,11 @@ export default function App(): Express {
       message: 'WatchStash API is up and running!',
     });
   });
+
+  // Public marketing data (TMDB-backed showcase). Mounted before the database
+  // gate below so the landing hero still renders real posters during a database
+  // outage, and so it never needs an authenticated session.
+  app.use('/api/media', publicMediaRouter);
 
   // Every data-backed route needs MongoDB, and on Vercel the connection is
   // established per instance. Awaiting it here makes the first request after a
