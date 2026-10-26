@@ -69,6 +69,23 @@
   animation: drift 22s ease-in-out infinite alternate;
 }
 
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 34s linear infinite;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 .glow-amber {
   background: radial-gradient(circle at center, rgba(245, 158, 11, 0.38), rgba(245, 158, 11, 0.06) 55%, transparent 75%);
 }
@@ -96,8 +113,13 @@
   .animate-fade-in-up,
   .animate-fade-up,
   .animate-drift,
-  .animate-menu-in {
+  .animate-menu-in,
+  .animate-marquee {
     animation: none;
+  }
+
+  html {
+    scroll-behavior: auto;
   }
 }
 

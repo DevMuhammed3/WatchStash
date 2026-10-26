@@ -129,6 +129,124 @@
     "unexpectedResponse": "Unexpected server response",
     "networkError": "Network error. Is the backend running?"
   },
+  "landing": {
+    "nav": {
+      "primary": "Primary",
+      "features": "Features",
+      "howItWorks": "How it works",
+      "faq": "FAQ",
+      "signIn": "Sign in",
+      "getStarted": "Get started",
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu"
+    },
+    "hero": {
+      "eyebrow": "Movies · Series · Anime",
+      "titleTop": "Every story.",
+      "titleBottom": "One stash.",
+      "description": "Track what you watch, rate what you love, and always know what's next — across movies, TV series, and anime.",
+      "primaryCta": "Start your stash",
+      "secondaryCta": "See how it works",
+      "trustFree": "Free forever",
+      "trustCard": "No credit card",
+      "trustSignIn": "Google & GitHub sign-in"
+    },
+    "preview": {
+      "windowUrl": "watchstash.site/app",
+      "libraryLabel": "My stash",
+      "libraryTitle": "Your library",
+      "titleCount": "128 titles",
+      "synced": "Synced just now",
+      "search": "Search your stash…",
+      "tabs": {
+        "all": "All",
+        "watching": "Watching",
+        "planned": "Planned",
+        "completed": "Completed"
+      },
+      "queueLabel": "Up next",
+      "queueTitle": "Weekend queue",
+      "queueMeta": "3 titles ready"
+    },
+    "marquee": ["Movies", "Series", "Anime", "Ratings", "Notes", "Progress"],
+    "features": {
+      "eyebrow": "The stash",
+      "title": "Built for the way you actually watch.",
+      "description": "No spreadsheets, no half-finished notes, no “what was that show called?” Your entire watch life, finally in one place.",
+      "libraryTitle": "Everything. One shelf.",
+      "libraryBody": "Movies, series, and anime live side by side — not scattered across three different apps.",
+      "libraryMovies": "Movies",
+      "librarySeries": "Series",
+      "libraryAnime": "Anime",
+      "statusTitle": "Four statuses. Zero clutter.",
+      "statusBody": "Move a title from planned to watching to finished with a single click.",
+      "searchTitle": "Find it in seconds.",
+      "searchBody": "Search a full catalog and add any title to your stash without leaving the page.",
+      "searchPlaceholder": "Search the catalog…",
+      "searchResultTitle": "Neon Horizon",
+      "searchResultMeta": "Movie · 2026",
+      "ratingTitle": "Rate it. Remember it.",
+      "ratingBody": "Score every finished title and leave a note, so future-you knows exactly why it mattered.",
+      "ratingNote": "“That final shot lived in my head for days.”",
+      "progressTitle": "Never lose your place.",
+      "progressBody": "Track seasons and episodes as you go, then pick up right where you stopped.",
+      "progressMeta": "Season 2 · Episode 4 of 10",
+      "progressAction": "Continue watching"
+    },
+    "manifesto": {
+      "eyebrow": "The WatchStash promise",
+      "lead": "A watchlist shouldn't feel like",
+      "strike": "homework",
+      "middle": "It should feel like",
+      "accent": "Friday night."
+    },
+    "how": {
+      "eyebrow": "How it works",
+      "title": "From “what should I watch?” to watching it.",
+      "description": "Three steps. About a minute. Then a lifetime of better movie nights.",
+      "oneTitle": "Make it yours",
+      "oneBody": "Sign up free with email, Google, or GitHub. Your stash is ready in seconds.",
+      "twoTitle": "Build your stash",
+      "twoBody": "Search movies, series, and anime. Add them with a status and you're set.",
+      "threeTitle": "Watch. Rate. Repeat.",
+      "threeBody": "Track your progress, rate what you finish, and leave notes for the next rewatch."
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "title": "Good questions.",
+      "description": "The short version of everything you might be wondering.",
+      "freeQ": "Is WatchStash really free?",
+      "freeA": "Yes. WatchStash is free to use, with no credit card and no trial timer. Create an account and start stashing.",
+      "trackQ": "What can I track?",
+      "trackA": "Movies, TV series, and anime. Give each title a status, rating, personal note, and — for series and anime — season and episode progress.",
+      "syncQ": "Will my stash stay in sync?",
+      "syncA": "Yes. Your stash is tied to your account, so your library is there when you sign in again on another browser.",
+      "phoneQ": "Does WatchStash work on my phone?",
+      "phoneA": "WatchStash is desktop-first for now. A dedicated mobile experience is on the way — the site is best enjoyed on a laptop or desktop browser today.",
+      "dataQ": "Where does the catalog come from?",
+      "dataA": "Title data and artwork come from TMDB. Your ratings, notes, and progress are yours."
+    },
+    "cta": {
+      "eyebrow": "Start tonight",
+      "title": "Your watchlist has been waiting.",
+      "description": "Make room for the stories you keep meaning to get to. Your next favorite is one stash away.",
+      "button": "Create your free stash",
+      "note": "Free forever · No credit card · Ready in under a minute"
+    },
+    "footer": {
+      "tagline": "A calmer home for everything you watch.",
+      "product": "Product",
+      "legal": "Legal",
+      "discover": "Discover",
+      "tracker": "My Tracker",
+      "signIn": "Sign in",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "copyright": "© {year} WatchStash. All rights reserved.",
+      "closer": "Made for people who watch too much. No such thing.",
+      "tmdb": "This product uses the TMDB API but is not endorsed or certified by TMDB."
+    }
+  },
   "metadata": {
     "defaultTitle": "WatchStash — Track Your Movies, TV Shows & Anime",
     "titleTemplate": "%s — WatchStash",
