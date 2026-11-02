@@ -212,6 +212,7 @@ function DiscoverySection({
               </p>
             </button>
           ))}
+
         </div>
       )}
     </section>
