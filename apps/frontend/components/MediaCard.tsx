@@ -72,7 +72,7 @@ export function MediaCard({
       ref={itemId ? setNodeRef : undefined}
       {...(itemId ? { ...listeners, ...attributes } : {})}
       onClick={onClick}
-      className={`group relative z-0 flex cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-surface transition-[transform,box-shadow,border-color] duration-300 ease-out hover:z-20 hover:-translate-y-1 hover:border-accent/40 hover:shadow-2xl hover:shadow-black/70 hover:ring-1 hover:ring-accent/25 focus-within:z-20 focus-within:-translate-y-1 focus-within:border-accent/40 focus-within:shadow-2xl focus-within:shadow-black/70 focus-within:ring-1 focus-within:ring-accent/25 motion-reduce:transform-none ${
+      className={`group relative z-0 flex cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-surface transition-[transform,box-shadow,border-color] duration-300 ease-out hover:z-10 hover:-translate-y-1 hover:border-accent/40 hover:shadow-2xl hover:shadow-black/70 hover:ring-1 hover:ring-accent/25 focus-within:z-10 focus-within:-translate-y-1 focus-within:border-accent/40 focus-within:shadow-2xl focus-within:shadow-black/70 focus-within:ring-1 focus-within:ring-accent/25 motion-reduce:transform-none ${
         isDragging ? "opacity-40" : ""
       }`}
     >

@@ -27,7 +27,7 @@ export function AppHeader() {
 
   return (
     <header
-      className={`sticky top-0 z-20 border-b backdrop-blur-xl transition-[background-color,box-shadow,border-color] duration-300 ${
+      className={`sticky top-0 z-30 border-b backdrop-blur-xl transition-[background-color,box-shadow,border-color] duration-300 ${
         scrolled
           ? "border-border bg-canvas/90 shadow-lg shadow-black/25"
           : "border-border/70 bg-canvas/70"
