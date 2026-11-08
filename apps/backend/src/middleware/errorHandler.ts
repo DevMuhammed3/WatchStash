@@ -6,6 +6,11 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
   const reqId = req.headers['x-request-id'];
 
   if (err instanceof AppError) {
+    if (err.headers) {
+      for (const [name, value] of Object.entries(err.headers)) {
+        res.setHeader(name, value);
+      }
+    }
     res.status(err.statusCode).json({
       status: 'error',
       message: err.message,

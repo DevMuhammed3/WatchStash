@@ -5,6 +5,53 @@ import { AppError } from '../utils/AppError.js';
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
+// Upstream calls must not hold an API request open indefinitely. One retry is
+// enough to ride out a transient blip; more would multiply latency under an
+// outage.
+const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
+const RETRY_BACKOFF_MS = 250;
+
+function requestTimeoutMs(): number {
+  const configured = Number(process.env.TMDB_REQUEST_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_REQUEST_TIMEOUT_MS;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableFetchError(error: unknown): boolean {
+  // AbortError = our timeout fired; TypeError = fetch network failure.
+  return error instanceof Error && (error.name === 'AbortError' || error.name === 'TypeError');
+}
+
+export class TmdbRequestError extends AppError {
+  constructor(
+    message: string,
+    public readonly upstreamStatus: number,
+    headers?: Record<string, string>,
+  ) {
+    // 429 is a temporary upstream throttle, so surface it as "service
+    // unavailable" with a Retry-After header rather than a generic 502.
+    super(message, upstreamStatus === 429 ? 503 : 502, true, headers);
+  }
+}
+
+async function fetchWithTimeout(
+  url: URL,
+  headers: Record<string, string>,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), requestTimeoutMs());
+  try {
+    return await fetch(url, { headers, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Seconds. TMDB refreshes trending and metadata daily, so those entries mirror
 // the upstream cadence; search reflects live user intent and stays short.
 const TTL = {
@@ -43,11 +90,45 @@ async function tmdbFetch<T>(
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-  const response = await fetch(url, { headers });
-  if (!response.ok) {
-    throw new AppError(`Upstream TMDB request failed (${response.status})`, 502);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let response: Response;
+
+    try {
+      response = await fetchWithTimeout(url, headers);
+    } catch (error) {
+      if (attempt === 0 && isRetryableFetchError(error)) {
+        await delay(RETRY_BACKOFF_MS);
+        continue;
+      }
+      throw new TmdbRequestError('Upstream TMDB request failed (network)', 0);
+    }
+
+    if (response.ok) {
+      return (await response.json()) as T;
+    }
+
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('retry-after') ?? '60';
+      throw new TmdbRequestError('Upstream TMDB rate limit exceeded', 429, {
+        'Retry-After': retryAfter,
+      });
+    }
+
+    // One retry for a transient upstream failure. Client errors (4xx) are
+    // deterministic, so retrying them only adds latency.
+    if (response.status >= 500 && attempt === 0) {
+      await delay(RETRY_BACKOFF_MS);
+      continue;
+    }
+
+    throw new TmdbRequestError(
+      `Upstream TMDB request failed (${response.status})`,
+      response.status,
+    );
   }
-  return (await response.json()) as T;
+
+  // Unreachable: the loop either returns or throws.
+  throw new TmdbRequestError('Upstream TMDB request failed (network)', 0);
 }
 
 interface TmdbPage<T> {
@@ -223,8 +304,14 @@ export const tmdbProvider: MediaProvider = {
         if (type) return normalizeDetails(await tmdbFetch<TmdbDetails>(`/${type}/${externalId}`), type);
         try {
           return normalizeDetails(await tmdbFetch<TmdbDetails>(`/movie/${externalId}`), 'movie');
-        } catch {
-          return normalizeDetails(await tmdbFetch<TmdbDetails>(`/tv/${externalId}`), 'tv');
+        } catch (error) {
+          // Only a genuine "not a movie" 404 justifies trying the TV
+          // namespace. Retrying on 429/5xx/network errors would double the
+          // upstream load and hide the real failure.
+          if (error instanceof TmdbRequestError && error.upstreamStatus === 404) {
+            return normalizeDetails(await tmdbFetch<TmdbDetails>(`/tv/${externalId}`), 'tv');
+          }
+          throw error;
         }
       },
       TTL.details,

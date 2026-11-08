@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
 import { tmdbProvider, getProvider, providers } from '../services/mediaProvider.js';
 import { buildStashFields } from '../controllers/media.js';
 import type { MediaDetails } from '@watchstash/types';
@@ -106,9 +106,16 @@ beforeEach(() => {
   queries = {};
 });
 
+afterEach(() => {
+  // Restore the shared stub after a test swapped in its own fetch.
+  globalThis.fetch = stub as typeof fetch;
+  delete process.env.TMDB_REQUEST_TIMEOUT_MS;
+});
+
 afterAll(() => {
   delete process.env.TMDB_ACCESS_TOKEN;
   delete process.env.TMDB_API_KEY;
+  delete process.env.TMDB_REQUEST_TIMEOUT_MS;
 });
 
 describe('tmdbProvider.search', () => {
@@ -270,6 +277,171 @@ describe('getProvider', () => {
     const lookup = getProvider as (id: string) => unknown;
     expect(() => lookup('nope')).toThrow(AppError);
     expect(() => lookup('nope')).toThrow('Unsupported media provider');
+  });
+});
+
+describe('TMDB resilience', () => {
+  const flakyDetails = {
+    id: 1,
+    title: 'Recovered Movie',
+    release_date: '2024-01-01',
+    overview: '',
+    poster_path: null,
+    backdrop_path: null,
+    genres: [],
+    vote_average: 0,
+    vote_count: 0,
+  };
+
+  async function captureError(fn: () => Promise<unknown>): Promise<unknown> {
+    try {
+      await fn();
+      return undefined;
+    } catch (error) {
+      return error;
+    }
+  }
+
+  function requestPath(input: RequestInfo | URL): string {
+    const url = new URL(
+      typeof input === 'string' ? input : input instanceof URL ? input.href : String(input),
+    );
+    return url.pathname.replace(/^\/3(?=\/)/, '');
+  }
+
+  test('times out a hung request, retries once, then reports a 502', async () => {
+    process.env.TMDB_REQUEST_TIMEOUT_MS = '20';
+    let calls = 0;
+
+    globalThis.fetch = ((_input, init) => {
+      calls += 1;
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          reject(error);
+        });
+      });
+    }) as typeof fetch;
+
+    const error = await captureError(() => tmdbProvider.details('timeout-case'));
+
+    expect(calls).toBe(2);
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).statusCode).toBe(502);
+  });
+
+  test('maps 429 to 503 with Retry-After and does not retry', async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls += 1;
+      return new Response('rate limited', {
+        status: 429,
+        headers: { 'Retry-After': '42' },
+      });
+    }) as typeof fetch;
+
+    const error = await captureError(() => tmdbProvider.details('rate-limited-case'));
+
+    expect(calls).toBe(1);
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).statusCode).toBe(503);
+    expect((error as AppError).headers).toEqual({ 'Retry-After': '42' });
+  });
+
+  test('retries one 5xx and succeeds on the second attempt', async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls += 1;
+      if (calls === 1) return new Response('upstream error', { status: 500 });
+      return new Response(JSON.stringify(flakyDetails), { status: 200 });
+    }) as typeof fetch;
+
+    const details = await tmdbProvider.details('flaky-500-case');
+
+    expect(calls).toBe(2);
+    expect(details.title).toBe('Recovered Movie');
+  });
+
+  test('gives up after one 5xx retry', async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls += 1;
+      return new Response('upstream error', { status: 502 });
+    }) as typeof fetch;
+
+    const error = await captureError(() => tmdbProvider.details('persistent-5xx-case'));
+
+    expect(calls).toBe(2);
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).statusCode).toBe(502);
+  });
+
+  test('does not retry a 4xx other than 404', async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls += 1;
+      return new Response('forbidden', { status: 403 });
+    }) as typeof fetch;
+
+    const error = await captureError(() => tmdbProvider.details('forbidden-case'));
+
+    expect(calls).toBe(1);
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).statusCode).toBe(502);
+  });
+
+  test('falls back from movie to tv only on a 404', async () => {
+    let movieCalls = 0;
+    let tvCalls = 0;
+
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const path = requestPath(input);
+      if (path.startsWith('/movie/')) {
+        movieCalls += 1;
+        return new Response('not found', { status: 404 });
+      }
+      if (path.startsWith('/tv/')) {
+        tvCalls += 1;
+        return new Response(
+          JSON.stringify({ ...flakyDetails, id: 2, name: 'Recovered Show', first_air_date: '2024-01-01' }),
+          { status: 200 },
+        );
+      }
+      return new Response('not found', { status: 404 });
+    }) as typeof fetch;
+
+    const details = await tmdbProvider.details('movie-404-case');
+
+    expect(movieCalls).toBe(1);
+    expect(tvCalls).toBe(1);
+    expect(details.mediaType).toBe('tv');
+    expect(details.title).toBe('Recovered Show');
+  });
+
+  test('does not fall back to tv on a 5xx', async () => {
+    let movieCalls = 0;
+    let tvCalls = 0;
+
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const path = requestPath(input);
+      if (path.startsWith('/movie/')) {
+        movieCalls += 1;
+        return new Response('upstream error', { status: 500 });
+      }
+      if (path.startsWith('/tv/')) {
+        tvCalls += 1;
+        return new Response(JSON.stringify(flakyDetails), { status: 200 });
+      }
+      return new Response('not found', { status: 404 });
+    }) as typeof fetch;
+
+    const error = await captureError(() => tmdbProvider.details('movie-500-case'));
+
+    expect(movieCalls).toBe(2);
+    expect(tvCalls).toBe(0);
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).statusCode).toBe(502);
   });
 });
 
