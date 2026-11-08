@@ -1,0 +1,27 @@
+name: Setup Bun
+description: >-
+  Install Bun 1.3.14. Uses oven-sh/setup-bun first, then falls back to the
+  identical binary from the npm registry when GitHub release downloads fail
+  (the release CDN occasionally returns 5xx).
+
+runs:
+  using: composite
+  steps:
+    - id: setup-bun
+      uses: oven-sh/setup-bun@v2
+      continue-on-error: true
+      with:
+        bun-version: 1.3.14
+
+    - name: Setup Node for the npm fallback
+      if: steps.setup-bun.outcome == 'failure'
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install Bun from npm
+      if: steps.setup-bun.outcome == 'failure'
+      shell: bash
+      run: |
+        npm install -g bun@1.3.14
+        bun --version
