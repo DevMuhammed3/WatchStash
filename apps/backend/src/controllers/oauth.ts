@@ -3,7 +3,15 @@ import type { OAuthProvider } from '@watchstash/types';
 import { User, type IUser } from '../models/User.js';
 import { AppError } from '../utils/AppError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { generateState, diagnoseState, generateCodeVerifier, generateCodeChallenge } from '../utils/oauthState.js';
+import {
+  generateState,
+  generateNonce,
+  diagnoseState,
+  registerNonce,
+  consumeNonce,
+  generateCodeVerifier,
+  generateCodeChallenge,
+} from '../utils/oauthState.js';
 import logger from '../config/logger.js';
 import { issueTokens } from '../utils/issueTokens.js';
 import { setRefreshCookie } from '../utils/refreshCookie.js';
@@ -19,6 +27,56 @@ import envValuaCheck from '../config/env.js';
 
 function buildRedirectUri(req: Request, provider: string): string {
   return `${req.protocol}://${req.get('host')}/api/auth/oauth/${provider}/callback`;
+}
+
+const PKCE_COOKIE_NAME = 'watchstash_oauth_pkce';
+const PKCE_COOKIE_TTL_MS = 10 * 60 * 1000;
+
+function pkceCookieOptions(provider: string) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: `/api/auth/oauth/${provider}/callback`,
+  };
+}
+
+interface PkceCookie {
+  /** Nonce this verifier belongs to, binding cookie and state. */
+  n: string;
+  /** PKCE code_verifier. */
+  v: string;
+}
+
+function setPkceCookie(
+  res: Response,
+  provider: string,
+  nonce: string,
+  codeVerifier: string,
+): void {
+  const value: PkceCookie = { n: nonce, v: codeVerifier };
+  res.cookie(PKCE_COOKIE_NAME, JSON.stringify(value), {
+    ...pkceCookieOptions(provider),
+    maxAge: PKCE_COOKIE_TTL_MS,
+  });
+}
+
+function readPkceCookie(req: Request): PkceCookie | null {
+  const raw = req.cookies?.[PKCE_COOKIE_NAME];
+  if (typeof raw !== 'string') return null;
+  try {
+    const parsed = JSON.parse(raw) as { n?: unknown; v?: unknown };
+    if (typeof parsed.n === 'string' && typeof parsed.v === 'string') {
+      return { n: parsed.n, v: parsed.v };
+    }
+  } catch {
+    // Malformed cookie: treat it as absent.
+  }
+  return null;
+}
+
+function clearPkceCookie(res: Response, provider: string): void {
+  res.clearCookie(PKCE_COOKIE_NAME, pkceCookieOptions(provider));
 }
 
 export async function findOrCreateUserByOAuth(
@@ -60,21 +118,26 @@ export const Authorize = asyncHandler(async (req: Request, res: Response) => {
   const config = getOAuthProvider(provider);
 
   const redirectUri = buildRedirectUri(req, provider);
-  let codeVerifier: string | undefined;
-  let codeChallenge: string | undefined;
+  const nonce = generateNonce();
+  const state = generateState(provider, nonce);
+  await registerNonce(nonce);
 
+  let codeChallenge: string | undefined;
   if (config.pkce) {
-    codeVerifier = generateCodeVerifier();
+    // The verifier never enters the state (which travels through the provider
+    // and browser history). It lives in an httpOnly cookie scoped to this
+    // provider's callback path.
+    const codeVerifier = generateCodeVerifier();
     codeChallenge = generateCodeChallenge(codeVerifier);
+    setPkceCookie(res, provider, nonce, codeVerifier);
   }
 
-  const state = generateState(provider, codeVerifier ? { codeVerifier } : undefined);
   res.redirect(buildAuthorizeUrl(provider as OAuthProvider, state, redirectUri, codeChallenge));
 });
 
 export const Callback = asyncHandler(async (req: Request, res: Response) => {
   const provider = req.params.provider as string;
-  getOAuthProvider(provider);
+  const config = getOAuthProvider(provider);
 
   const { code, state, error } = req.query as {
     code?: string;
@@ -97,12 +160,33 @@ export const Callback = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError(`Invalid OAuth callback (${verdict.reason})`, 400);
   }
 
+  // For PKCE providers the verifier must come from the httpOnly cookie and
+  // belong to this exact state (same nonce). A missing/mismatched cookie means
+  // the state was not issued to this browser.
+  let pkceCookie: PkceCookie | null = null;
+  if (config.pkce) {
+    pkceCookie = readPkceCookie(req);
+    if (!pkceCookie || pkceCookie.n !== verdict.nonce) {
+      clearPkceCookie(res, provider);
+      logger.warn(`OAuth callback rejected: provider=${provider} reason=state_mismatch`);
+      throw new AppError('Invalid OAuth callback (state_mismatch)', 400);
+    }
+  }
+
+  // Single use: the first callback claims the nonce, every replay fails.
+  if (!(await consumeNonce(verdict.nonce))) {
+    clearPkceCookie(res, provider);
+    logger.warn(`OAuth callback rejected: provider=${provider} reason=replayed_state`);
+    throw new AppError('Invalid OAuth callback (replayed_state)', 400);
+  }
+  clearPkceCookie(res, provider);
+
   const redirectUri = buildRedirectUri(req, provider);
   const profile = await exchangeCodeForProfile(
     provider as OAuthProvider,
     code,
     redirectUri,
-    verdict.cv,
+    pkceCookie?.v,
   );
   const user = await findOrCreateUserByOAuth(provider as OAuthProvider, profile);
   const { accessToken, refreshToken } = await issueTokens(user._id);
