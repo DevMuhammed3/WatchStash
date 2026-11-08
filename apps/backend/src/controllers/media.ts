@@ -90,8 +90,14 @@ export const getStashItems = asyncHandler(async (req: Request, res: Response) =>
   const { page, limit } = req.query as unknown as { page: number; limit: number };
   const skip = (page - 1) * limit;
 
+  // Read-only list: `.lean()` skips hydrating full Mongoose documents. No
+  // model defines toJSON/transform, so the JSON response is unchanged.
   const [items, total] = await Promise.all([
-    StashItem.find({ userId: req.user!.id }).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    StashItem.find({ userId: req.user!.id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     StashItem.countDocuments({ userId: req.user!.id }),
   ]);
 

@@ -96,6 +96,51 @@ describe('uniqueUsername', () => {
     const unique = await findUniqueUsername('Brand New Person');
     expect(unique).toBe('brand_new_person');
   });
+
+  test('should skip every taken numeric suffix in one query', async () => {
+    await User.create([
+      {
+        username: 'suffix_taken',
+        displayName: 'Suffix Taken',
+        email: 'suffix-taken@example.com',
+        hasPassword: false,
+      },
+      {
+        username: 'suffix_taken_2',
+        displayName: 'Suffix Two',
+        email: 'suffix-two@example.com',
+        hasPassword: false,
+      },
+      {
+        username: 'suffix_taken_3',
+        displayName: 'Suffix Three',
+        email: 'suffix-three@example.com',
+        hasPassword: false,
+      },
+      {
+        // Shares the prefix but is not a numeric-suffix collision.
+        username: 'suffix_taken_extra',
+        displayName: 'Suffix Extra',
+        email: 'suffix-extra@example.com',
+        hasPassword: false,
+      },
+    ]);
+
+    expect(await findUniqueUsername('Suffix Taken')).toBe('suffix_taken_4');
+  });
+
+  test('should still add a suffix when the base is at the length limit', async () => {
+    const longName = 'a'.repeat(30);
+    await User.create({
+      username: longName,
+      displayName: 'Long Name',
+      email: 'long-name@example.com',
+      hasPassword: false,
+    });
+
+    // Truncating `root_2` back to 30 characters would return the taken base.
+    expect(await findUniqueUsername(longName)).toBe(`${'a'.repeat(27)}_2`);
+  });
 });
 
 describe('findOrCreateUserByOAuth', () => {
