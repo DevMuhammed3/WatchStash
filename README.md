@@ -1,5 +1,7 @@
 # WatchStash
 
+[![CI](https://github.com/DevMuhammed3/WatchStash/actions/workflows/ci.yml/badge.svg)](https://github.com/DevMuhammed3/WatchStash/actions/workflows/ci.yml)
+
 WatchStash is a full-stack media tracking application for movies, TV series, and anime. Discover what is trending, add titles to a personal stash, track progress, rate and review what you watch, and manage your account from one place.
 
 The project is a Bun monorepo with an Express/MongoDB API, a Next.js web app, and shared TypeScript and UI packages.
@@ -68,7 +70,7 @@ Available at `/app/settings`:
 - Privacy and terms pages.
 - SEO metadata, sitemap, and robots.txt.
 - English localization through `next-intl`; the routing setup is ready for more locales.
-- Mobile gate for viewports below 640px while the mobile experience is being built.
+- Mobile gate for the authenticated tracker (`/app/*`) below 640px while the mobile experience is being built. Public pages remain fully usable on phones.
 
 ## Tech stack
 
@@ -83,7 +85,7 @@ Available at `/app/settings`:
 | Styling | Tailwind CSS v4 |
 | Localization | `next-intl` |
 | Media data | TMDB |
-| Rate limiting and cache | Upstash Redis (optional; in-memory fallback in development) |
+| Rate limiting and cache | Upstash Redis (optional; in-memory cache and per-instance rate-limit fallback) |
 | Logging | pino / pino-http |
 
 ## Project structure
@@ -104,6 +106,7 @@ watchstash/
 │   │   │   ├── __tests__/     # Bun test suites
 │   │   │   ├── app.ts         # Express app factory
 │   │   │   └── index.ts       # Server entrypoint
+│   │   ├── scripts/           # Operational scripts (read-only duplicate scan)
 │   │   ├── .env.example
 │   │   └── vercel.json
 │   └── frontend/
@@ -116,6 +119,7 @@ watchstash/
 ├── packages/
 │   ├── types/                 # Shared TypeScript types
 │   └── ui/                    # Shared React components (Button, Input, Dialog, etc.)
+├── .github/workflows/         # CI: backend tests + frontend build
 └── package.json               # Workspace scripts
 ```
 
@@ -151,6 +155,7 @@ Bun loads `.env` files automatically; no `dotenv` setup is required.
 | `OAUTH_STATE_SECRET` | Yes | Secret used to sign and verify OAuth state values. |
 | `TMDB_ACCESS_TOKEN` | For media | TMDB v4 read access token (Bearer auth). |
 | `TMDB_API_KEY` | For media | TMDB v3 API key. Used when `TMDB_ACCESS_TOKEN` is unset. |
+| `TMDB_REQUEST_TIMEOUT_MS` | No | Per-attempt TMDB request timeout in milliseconds. Defaults to `5000`. |
 | `UPSTASH_REDIS_REST_URL` | No | Upstash Redis REST URL for cache and rate limiting. |
 | `UPSTASH_REDIS_REST_TOKEN` | No | Upstash Redis REST token. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | No | Google OAuth credentials. |
@@ -229,6 +234,8 @@ The backend runs with `bun --watch`; the frontend uses the Next.js dev server.
 | `bun run start` | Start the API without watch mode. |
 | `bun run build` | Type-check and compile with TypeScript. |
 | `bun test` | Run all backend tests. |
+| `bun test --coverage` | Run all backend tests with a coverage report. |
+| `bun run find-stash-duplicates` | Read-only scan for stash items that would violate the unique provider index. Exits non-zero when duplicates exist. |
 | `bun run lint` | Run ESLint. |
 | `bun run lint:fix` | Run ESLint with automatic fixes. |
 | `bun run format` | Format source with Prettier. |
@@ -257,7 +264,7 @@ The backend runs with `bun --watch`; the frontend uses the Next.js dev server.
 | `/privacy` | Privacy policy. |
 | `/terms` | Terms of service. |
 
-The default locale (`en`) uses unprefixed URLs. Protected routes are wrapped by `RouteGuard`, which redirects unauthenticated visitors to `/login` and authenticated visitors away from guest-only pages.
+The default locale (`en`) uses unprefixed URLs. Protected routes are wrapped by `RouteGuard`, which redirects unauthenticated visitors to `/login` and authenticated visitors away from guest-only pages. The mobile gate is mounted only under `/app`, so public routes are never blocked on small screens.
 
 ## API reference
 
@@ -325,7 +332,6 @@ Response `201`:
 {
   "status": "success",
   "accessToken": "<jwt>",
-  "refreshToken": "<jwt>",
   "user": {
     "_id": "...",
     "username": "ada_lovelace",
@@ -344,7 +350,7 @@ Response `201`:
 }
 ```
 
-The refresh token is also set as an httpOnly cookie. The body copy exists for legacy clients; browser clients should rely on the cookie.
+The refresh token is delivered only as the `watchstash_refresh` httpOnly cookie. It is never returned in the JSON body, so client JavaScript (and therefore XSS) cannot read it. The same applies to login and refresh responses.
 
 #### Login
 
@@ -356,7 +362,7 @@ The refresh token is also set as an httpOnly cookie. The body copy exists for le
 
 #### Refresh and logout
 
-These endpoints read the refresh token from the `watchstash_refresh` cookie. A `refreshToken` body field is supported as a legacy fallback.
+These endpoints read the refresh token from the `watchstash_refresh` cookie. A `refreshToken` body field is still accepted as a legacy input, but the rotated token is never echoed in the response body.
 
 - Refresh rotates the token. The old token remains usable for a short grace window to tolerate double-submitted requests.
 - Logout revokes the token and clears the cookie.
@@ -381,7 +387,7 @@ All routes require a bearer token.
 
 | Method | Path | Query / body | Description |
 | --- | --- | --- | --- |
-| `GET` | `/api/stash` | `page`, `limit` | List the user's stash. `limit` defaults to 50 and is capped at 100. |
+| `GET` | `/api/stash` | `page`, `limit` | List the user's stash. `limit` defaults to 50 and is capped at 100. Invalid pagination returns `400`. |
 | `POST` | `/api/stash/from-provider` | See below | Add a TMDB title to the stash. |
 | `PATCH` | `/api/stash/:id` | Partial update | Update status, rating, review, tags, or progress. |
 | `DELETE` | `/api/stash/:id` | None | Delete a stash item. |
@@ -516,8 +522,11 @@ The refresh cookie is cleared, and subsequent authenticated requests fail becaus
 - **Rotation**: every refresh issues a new token and revokes the old one. A 10-second grace window handles double-submitted rotations.
 - **Cookie settings**: `SameSite=Lax` in development, `SameSite=None; Secure` in production because the frontend and API may be on different sites.
 - **CSRF protection**: state-changing auth routes reject unknown `Origin` headers when present. CORS is restricted to `CORS_ORIGIN`.
+- **Request validation**: route params (`:id` as a Mongo ObjectId, `:provider` as a supported enum) and list pagination are validated with Zod. Invalid values return `400` before reaching MongoDB.
 - **Password storage**: bcrypt with 12 rounds.
 - **OAuth linking**: if a provider returns a verified email matching an existing account, the provider is linked to that account. Otherwise a new account is created with a unique username.
+- **OAuth state**: HMAC-signed with `OAUTH_STATE_SECRET`, valid for 10 minutes, and bound to a single-use nonce. A replayed callback is rejected with `400`.
+- **PKCE**: the code verifier is never embedded in the state. It lives in a short-lived httpOnly cookie scoped to the provider's callback path, bound to the same nonce. A callback without the matching cookie is rejected.
 - **OAuth redirect**: only the short-lived access token is placed in the frontend URL fragment. The refresh token is set as a cookie on the API origin before the redirect.
 
 ### Rate limiting
@@ -532,7 +541,9 @@ In production, when Upstash Redis is configured:
 | Public showcase per IP | 60 requests / 15 minutes |
 | Stash reads/writes per user | 100 requests / 15 minutes |
 
-Without Upstash credentials the backend uses an in-memory cache and disables distributed rate limiting. This is suitable for local development only.
+Limits are always enforced in production. Without Upstash credentials the backend logs a startup warning and uses a per-instance in-memory fixed-window limiter instead. That still protects a single process, but limits are not shared across serverless instances, so configure Upstash for real deployments.
+
+Development and test environments bypass rate limiting entirely. `RATE_LIMIT_DISABLED` is ignored in production, so a stale environment variable cannot turn protection off.
 
 ## Account settings
 
@@ -571,12 +582,34 @@ The settings page lives at `/{locale}/app/settings` (`/app/settings` for English
 | Model | Key fields | Notes |
 | --- | --- | --- |
 | `User` | `username`, `displayName`, `email`, `passwordHash?`, `hasPassword`, `bio`, `avatarUrl`, `providers.*Id`, `followersCount`, `followingCount` | Unique lowercase username and email. OAuth-only users have no `passwordHash`. |
-| `StashItem` | `userId`, `title`, `type`, `status`, `rating?`, `review?`, `progress`, `posterUrl?`, `provider?`, `externalId?`, TMDB metadata, `tags?` | Indexed by user; the main tracker record. |
-| `Movie` | `userId`, `title`, `description`, `releaseYear`, `genre`, `watched` | Simple legacy movie collection. |
+| `StashItem` | `userId`, `title`, `type`, `status`, `rating?`, `review?`, `progress`, `posterUrl?`, `provider?`, `externalId?`, TMDB metadata, `tags?` | Main tracker record. Unique per `{ userId, provider, externalId, type }`; list reads use `{ userId, createdAt }`. |
+| `Movie` | `userId`, `title`, `description`, `releaseYear`, `genre`, `watched` | Simple legacy movie collection; not used by the current frontend UI. |
 | `RefreshToken` | hashed `token`, `user`, `expiresAt`, `revoked`, `rotatedAt?`, `replacedBy?` | Automatic TTL cleanup at expiry. |
-| `Follow` | `follower`, `following` | Unique pair; cleaned up when either account is deleted. |
+| `Follow` | `follower`, `following` | Unique pair; cleaned up when either account is deleted. No follow API or UI exists yet. |
 
 Account deletion uses the `User` document's `deleteOne` middleware to cascade the related collections before removing the user.
+
+### Stash uniqueness
+
+A provider title is unique per user. The compound unique index is what makes concurrent add requests safe: two requests can both pass the application-level existence check, and the database rejects the second insert with a duplicate-key error, which the API maps to `409`.
+
+Mongoose's default `autoIndex` behavior is left enabled, but do not rely on it for production. Before deploying to an existing database, check for legacy duplicates (the script is read-only):
+
+```bash
+cd apps/backend
+bun run find-stash-duplicates
+```
+
+If it reports duplicates, merge or remove them manually, then build the index once against production:
+
+```js
+db.stashitems.createIndex(
+  { userId: 1, provider: 1, externalId: 1, type: 1 },
+  { unique: true, name: 'uniq_user_provider_external_type' }
+)
+```
+
+The script exits `1` when duplicates exist, so it can be used as a pre-deploy gate.
 
 ## Testing and quality checks
 
@@ -594,7 +627,14 @@ cd apps/backend
 bun test src/__tests__/authSettings.test.ts
 ```
 
-Existing suites cover the app factory, auth HTTP flows, account settings, OAuth, the database layer, the media provider, Upstash behavior, and the Vercel entrypoint.
+Existing suites cover the app factory, auth HTTP flows, account settings, OAuth state/replay/PKCE, the database layer, the media provider and its timeout/retry behavior, Upstash and rate limiting, request validation, the stash uniqueness race, lean list queries, the error handler, and the Vercel entrypoint.
+
+Run the suite with coverage:
+
+```bash
+cd apps/backend
+bun test --coverage
+```
 
 Test suites that delete documents derive a separate `watchstash_test` database from `MONGODB_URI`. Set `MONGODB_TEST_URI` to use a different scratch database. Never point destructive tests at the development database.
 
@@ -612,6 +652,15 @@ cd apps/backend
 bun run lint
 bun run format:check
 ```
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`:
+
+- **Backend**: installs dependencies with `bun install --frozen-lockfile`, type-checks, and runs `bun test --coverage` against a MongoDB 7 service.
+- **Frontend**: installs dependencies, runs `bun run typecheck`, and produces a production build with placeholder `NEXT_PUBLIC_*` values.
+
+Bun is installed with `oven-sh/setup-bun`; if GitHub's release CDN is unavailable, a composite action falls back to the identical binary from the npm registry. No deployment steps run in CI.
 
 ## Deployment
 
@@ -636,6 +685,7 @@ Required production configuration:
 - `CORS_ORIGIN` and `FRONTEND_ORIGIN` set to the deployed frontend origin, without trailing slashes.
 - OAuth callback URLs registered as `https://<backend-domain>/api/auth/oauth/<provider>/callback`.
 - Upstash credentials for reliable rate limiting and shared caching across serverless instances.
+- A duplicate scan (`bun run find-stash-duplicates`) and the unique stash index built before the first deploy. See [Stash uniqueness](#stash-uniqueness).
 
 If the API and frontend share a site in production, adjust the cookie strategy in `apps/backend/src/utils/refreshCookie.ts` and the origin checks in `apps/backend/src/middleware/requireSameOrigin.ts` together.
 
@@ -644,9 +694,10 @@ If the API and frontend share a site in production, adjust the cookie strategy i
 - Email addresses cannot be changed, and there is no email verification or password-reset flow yet.
 - Avatars are URL-only; there is no upload or media storage.
 - Facebook and X sign-in are wired on the backend but marked "Coming soon" in the UI.
-- The site intentionally blocks viewports below 640px with a mobile gate.
+- The authenticated tracker (`/app/*`) is intentionally blocked below 640px with a mobile gate. Landing, login, privacy, and terms pages are not gated.
 - Only English is enabled in `next-intl`; the routing supports adding more locales.
-- The simple `/api/movies` collection is separate from the richer stash tracker.
+- The simple `/api/movies` collection is separate from the richer stash tracker and is not used by the current frontend UI.
+- The `Follow` model and cascade exist, but there is no follow API or UI yet.
 
 ## Troubleshooting
 
@@ -663,6 +714,10 @@ Check that `MONGODB_URI`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `CORS_ORIGIN`, `FR
 ### Media endpoints return a configuration error
 
 Set either `TMDB_ACCESS_TOKEN` (v4 read token, preferred) or `TMDB_API_KEY` (v3 key). The app still starts without one, but media features cannot load data.
+
+### Media requests are slow or fail with 502/503
+
+TMDB requests time out after 5 seconds and retry once on network errors or 5xx responses. Upstream 429s are surfaced as `503` with a `Retry-After` header. Detail lookups fall back from movie to TV only on a genuine 404. Override the timeout with `TMDB_REQUEST_TIMEOUT_MS` when needed.
 
 ### OAuth says a provider is not configured
 
@@ -682,7 +737,7 @@ The refresh cookie only works when the frontend and API are configured as expect
 
 ### Rate limits or cache warnings
 
-Add Upstash credentials for production. Without them, the backend logs a warning and falls back to an in-memory cache with rate limiting disabled.
+Add Upstash credentials for production. Without them, the backend logs a warning and falls back to an in-memory cache and a per-instance in-memory rate limiter. Limits still apply within one process, but they are not shared across instances. Development and test runs bypass rate limiting by design.
 
 ## License
 
