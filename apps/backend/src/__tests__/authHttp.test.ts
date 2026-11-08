@@ -77,21 +77,23 @@ describe('Auth cookie flow', () => {
     expect(header).toContain('SameSite=Lax');
 
     accessToken = res.body.accessToken;
-    refreshToken = res.body.refreshToken;
+    refreshToken = cookieValue(header);
     expect(typeof accessToken).toBe('string');
-    expect(typeof refreshToken).toBe('string');
+    expect(refreshToken).not.toBe('');
+    // The refresh token must never be readable by JavaScript.
+    expect(res.body.refreshToken).toBeUndefined();
   });
 
-  test('legacy callers that send the token in the body still get one back', async () => {
+  test('legacy callers that send the token in the body still refresh, but get no token back', async () => {
     const res = await request(app)
       .post('/api/auth/refresh')
       .send({ refreshToken });
 
     expect(res.status).toBe(200);
     expect(typeof res.body.accessToken).toBe('string');
-    // Only body-based callers are echoed; this keeps pre-cookie sessions
-    // working while they migrate.
-    expect(typeof res.body.refreshToken).toBe('string');
+    // Body-based callers keep working (the token is accepted) but the rotated
+    // token is only delivered through the httpOnly cookie.
+    expect(res.body.refreshToken).toBeUndefined();
     refreshToken = cookieValue(refreshCookieHeader(res));
     expect(refreshToken).not.toBe('');
   });
@@ -206,5 +208,21 @@ describe('Auth cookie flow', () => {
   test('accepts auth POSTs without an Origin header (non-browser clients)', async () => {
     const res = await request(app).post('/api/auth/refresh').send({});
     expect(res.status).toBe(401);
+  });
+
+  test('login sets the refresh cookie and never returns the token in the body', async () => {
+    const res = await request(app).post('/api/auth/login').send({
+      identifier: username,
+      password: 'Password1',
+    });
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.accessToken).toBe('string');
+    expect(res.body.refreshToken).toBeUndefined();
+
+    const header = refreshCookieHeader(res);
+    expect(header).toContain(`${REFRESH_COOKIE_NAME}=`);
+    expect(header).toContain('HttpOnly');
+    expect(cookieValue(header)).not.toBe('');
   });
 });

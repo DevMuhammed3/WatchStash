@@ -9,7 +9,6 @@ import { verifyRefreshToken, hashToken } from '../config/jwt.js';
 import { issueTokens } from '../utils/issueTokens.js';
 import {
   readRefreshToken,
-  refreshTokenFromBody,
   setRefreshCookie,
   clearRefreshCookie,
 } from '../utils/refreshCookie.js';
@@ -68,10 +67,11 @@ export const Register = asyncHandler(async (req: Request, res: Response) => {
   const { accessToken, refreshToken } = await issueTokens(user._id);
   setRefreshCookie(res, refreshToken);
 
+  // The refresh token lives only in the httpOnly cookie set above; returning it
+  // here would let JavaScript (and therefore XSS) read it.
   res.status(201).json({
     status: 'success',
     accessToken,
-    refreshToken,
     user: userPayload(user),
   });
 });
@@ -97,10 +97,10 @@ export const Login = asyncHandler(async (req: Request, res: Response) => {
   const { accessToken, refreshToken } = await issueTokens(user._id);
   setRefreshCookie(res, refreshToken);
 
+  // See Register: the refresh token is delivered by cookie only.
   res.status(200).json({
     status: 'success',
     accessToken,
-    refreshToken,
     user: userPayload(user),
   });
 });
@@ -160,13 +160,12 @@ export const Refresh = asyncHandler(async (req: Request, res: Response) => {
   await RefreshToken.updateOne({ _id: storedToken._id }, { replacedBy: refreshTokenHash });
   setRefreshCookie(res, refreshToken);
 
+  // The rotated refresh token is delivered by cookie only. It is never echoed
+  // in the body, even to legacy body-based callers: that would let XSS bypass
+  // the httpOnly cookie by calling /refresh itself.
   res.status(200).json({
     status: 'success',
     accessToken,
-    // Echo the token only for clients that sent it in the body (legacy
-    // localStorage flow). Cookie-based clients must never receive it, or XSS
-    // could bypass the httpOnly cookie by calling /refresh itself.
-    ...(refreshTokenFromBody(req) ? { refreshToken } : {}),
   });
 });
 
