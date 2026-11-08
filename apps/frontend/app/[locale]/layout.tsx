@@ -6,7 +6,6 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 import { AuthProvider } from "@/lib/auth-context";
-import { MobileGate } from "@/components/MobileGate";
 import favicon from "../../public/16X16_icon.png";
 import icon from "../../public/512×512_icon.png";
 import { Analytics } from "@vercel/analytics/next";
@@ -122,7 +121,6 @@ export default async function LocaleLayout({
   return (
     <div className={`${inter.variable} ${bebasNeue.variable}`}>
       <NextIntlClientProvider locale={locale}>
-        <MobileGate />
         <AuthProvider>{children}</AuthProvider>
       </NextIntlClientProvider>
       <script

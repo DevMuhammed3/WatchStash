@@ -1,22 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Smartphone } from "lucide-react";
+import { ArrowLeft, Smartphone } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 const MOBILE_QUERY = "(max-width: 639px)";
 
 /**
- * Production-grade mobile gate.
+ * Mobile gate for the authenticated tracker.
  *
- * Blocks the entire site for phone users (< 640px wide) by covering the
- * screen with a "mobile app coming soon" screen. Desktop/tablet users are
- * unaffected.
+ * Mounted from `app/[locale]/app/layout.tsx`, so it only ever covers `/app/*`.
+ * Public pages (landing, login, privacy, terms) render normally on phones.
  *
  * - Renders null until mounted (hydration-safe, no SSR flash on desktop).
  * - Listens to viewport changes (rotation/resize) via matchMedia, so a
- *   phone rotated to a wide enough viewport (or resized) unlocks the site.
- * - No dismissal — the site is intentionally unavailable on phones for now.
+ *   phone rotated to a wide enough viewport (or resized) unlocks the tracker.
+ * - Always offers a link back to the landing page.
  * - CSS `sm:hidden` is a defensive guard on top of the JS check.
  */
 export function MobileGate() {
@@ -85,6 +85,14 @@ export function MobileGate() {
         <p className="mt-3 max-w-sm text-sm leading-relaxed text-secondary">
           {t("body")}
         </p>
+
+        <Link
+          href="/"
+          className="mt-8 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-semibold text-canvas shadow-[0_0_30px_rgba(245,158,11,0.22)] transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t("backHome")}
+        </Link>
       </main>
     </div>
   );

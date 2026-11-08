@@ -108,7 +108,8 @@
   },
   "mobileGate": {
     "title": "WatchStash is coming to mobile",
-    "body": "The phone app is on the way. For now, please use WatchStash on your desktop or laptop browser — we can't wait for you to join us on mobile."
+    "body": "The phone app is on the way. For now, please use the tracker on your desktop or laptop browser. The landing page, sign-in, and legal pages work on any screen.",
+    "backHome": "Back to the landing page"
   },
   "authCallback": {
     "signInNotCompleted": "Sign-in was not completed. Please try again.",
