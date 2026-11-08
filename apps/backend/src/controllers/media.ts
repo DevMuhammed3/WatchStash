@@ -129,16 +129,26 @@ export const createStashFromProvider = asyncHandler(async (req: Request, res: Re
     throw new AppError('This item is already in your stash', 409);
   }
 
-  const item = await StashItem.create({
-    userId,
-    provider,
-    externalId,
-    status: status ?? DEFAULT_STATUS,
-    rating,
-    review,
-    tags,
-    ...buildStashFields(details, mediaType, progress, mediaProvider.imageUrl.bind(mediaProvider)),
-  });
+  let item;
+  try {
+    item = await StashItem.create({
+      userId,
+      provider,
+      externalId,
+      status: status ?? DEFAULT_STATUS,
+      rating,
+      review,
+      tags,
+      ...buildStashFields(details, mediaType, progress, mediaProvider.imageUrl.bind(mediaProvider)),
+    });
+  } catch (error) {
+    // Two concurrent requests can both pass the findOne() above; the unique
+    // compound index is what actually serializes them.
+    if ((error as { code?: number }).code === 11000) {
+      throw new AppError('This item is already in your stash', 409);
+    }
+    throw error;
+  }
 
   res.status(201).json({ status: 'success', item });
 });

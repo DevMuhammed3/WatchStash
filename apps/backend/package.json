@@ -11,6 +11,7 @@
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
+    "find-stash-duplicates": "bun scripts/find-stash-duplicates.ts",
     "test": "bun test"
   },
   "devDependencies": {

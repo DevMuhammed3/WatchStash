@@ -115,4 +115,17 @@ stashItemSchema.index({ userId: 1 });
 stashItemSchema.index({ userId: 1, status: 1 });
 stashItemSchema.index({ userId: 1, type: 1 });
 
+// A provider item is unique per user. This is the real guarantee behind
+// `createStashFromProvider`: two concurrent requests can both pass the
+// findOne() check, and only the database can reject the second insert.
+// Build this index manually in production (scripts/find-stash-duplicates.ts
+// reports anything that would make the build fail).
+stashItemSchema.index(
+  { userId: 1, provider: 1, externalId: 1, type: 1 },
+  { unique: true, name: 'uniq_user_provider_external_type' },
+);
+
+// Sorted stash list (`sort({ createdAt: -1 })`).
+stashItemSchema.index({ userId: 1, createdAt: -1 });
+
 export const StashItem = model<IStashItem>('StashItem', stashItemSchema);
