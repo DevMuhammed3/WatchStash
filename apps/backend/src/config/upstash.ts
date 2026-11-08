@@ -105,31 +105,105 @@ interface RateLimitOptions {
   prefix: string;
 }
 
+const WINDOW_UNIT_MS: Record<string, number> = {
+  s: 1000,
+  m: 60 * 1000,
+  h: 60 * 60 * 1000,
+  d: 24 * 60 * 60 * 1000,
+};
+
+function windowToMs(window: RateLimitOptions['window']): number {
+  const [amount, unit] = window.split(' ');
+  const multiplier = WINDOW_UNIT_MS[unit ?? ''] ?? WINDOW_UNIT_MS.m!;
+  return Math.max(1, Number(amount)) * multiplier;
+}
+
+interface MemoryCounter {
+  count: number;
+  resetAt: number;
+}
+
+// Per-instance fallback for production deployments that have not configured
+// Upstash. It is not shared across serverless instances, but it still enforces
+// the limit within one process instead of silently allowing everything.
+const memoryCounters = new Map<string, MemoryCounter>();
+let lastMemoryCleanup = 0;
+
+function cleanupMemoryCounters(now: number): void {
+  // Sweep at most once a minute so the map cannot grow without bound.
+  if (now - lastMemoryCleanup < 60_000) return;
+  lastMemoryCleanup = now;
+  for (const [key, counter] of memoryCounters) {
+    if (counter.resetAt <= now) memoryCounters.delete(key);
+  }
+}
+
+function createInMemoryRateLimit(options: RateLimitOptions) {
+  const { id, limit, window, prefix } = options;
+  const windowMs = windowToMs(window);
+
+  return (req: Request, res: Response, next: NextFunction) => {
+    const identifier = id === 'user' ? req.user?.id : req.ip;
+    if (!identifier) {
+      next(new AppError('Not authenticated', 401));
+      return;
+    }
+
+    const now = Date.now();
+    cleanupMemoryCounters(now);
+
+    const key = `${prefix}:${identifier}`;
+    let counter = memoryCounters.get(key);
+    if (!counter || counter.resetAt <= now) {
+      counter = { count: 0, resetAt: now + windowMs };
+      memoryCounters.set(key, counter);
+    }
+    counter.count += 1;
+
+    res.setHeader('X-RateLimit-Limit', String(limit));
+    res.setHeader('X-RateLimit-Remaining', String(Math.max(0, limit - counter.count)));
+    res.setHeader('X-RateLimit-Reset', String(counter.resetAt));
+
+    if (counter.count > limit) {
+      const retryAfter = Math.max(1, Math.ceil((counter.resetAt - now) / 1000));
+      res.setHeader('Retry-After', String(retryAfter));
+      res.status(429).json({ status: 'error', message: 'Too many requests, please try again later' });
+      return;
+    }
+
+    next();
+  };
+}
+
+let rateLimitWarned = false;
+
 /**
- * Redis-backed sliding-window rate limit. Falls back to pass-through when
- * Upstash is not configured (local dev / tests).
+ * Redis-backed sliding-window rate limit.
+ *
+ * - Development/test: pass-through, so local work and the test suite stay
+ *   frictionless.
+ * - Production with Upstash: distributed sliding window.
+ * - Production without Upstash: per-instance in-memory fixed window plus a
+ *   startup warning. RATE_LIMIT_DISABLED is intentionally ignored in
+ *   production so a stale env var can never turn protection off.
  */
 export function createRateLimit(options: RateLimitOptions) {
   const { id, limit, window, prefix } = options;
 
   const isProduction = process.env.NODE_ENV === 'production';
-
-  // Development and tests must remain frictionless. Rate-limit bypass is
-  // permitted only outside production, no matter what environment variables
-  // are provided, so a stale RATE_LIMIT_DISABLED=true can never disable
-  // production enforcement.
-  const requestedBypass = process.env.RATE_LIMIT_DISABLED === 'true';
-  if (!isProduction && (requestedBypass || true)) {
+  if (!isProduction) {
     return (_req: Request, _res: Response, next: NextFunction) => next();
   }
 
   const redis = getRedis();
   if (!redis) {
-    // Production without Redis cannot enforce distributed limits. Keep the
-    // application available rather than failing closed on every request, but log
-    // the degraded state.
-    logger.warn('Rate limiting disabled in production: Upstash Redis is not configured.');
-    return (_req: Request, _res: Response, next: NextFunction) => next();
+    if (!rateLimitWarned) {
+      rateLimitWarned = true;
+      logger.warn(
+        'Upstash Redis is not configured in production - using a per-instance in-memory rate limiter. Limits are not shared across instances.',
+      );
+    }
+    return createInMemoryRateLimit(options);
   }
 
   const ratelimit = new Ratelimit({
