@@ -13,7 +13,16 @@ import {
 import { authenticate } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createRateLimit } from '../config/upstash.js';
-import { searchTmdbQuerySchema, trendingQuerySchema, popularQuerySchema, stashItemBodySchema, updateStashItemSchema } from '../validations/media.js';
+import {
+  searchTmdbQuerySchema,
+  trendingQuerySchema,
+  popularQuerySchema,
+  mediaDetailsParamsSchema,
+  stashItemParamsSchema,
+  stashItemBodySchema,
+  updateStashItemSchema,
+} from '../validations/media.js';
+import { paginationQuerySchema } from '../validations/common.js';
 
 export const mediaRouter: Router = Router();
 export const publicMediaRouter: Router = Router();
@@ -32,9 +41,25 @@ publicMediaRouter.get('/showcase', showcaseReadLimiter, showcaseMedia);
 mediaRouter.get('/search', mediaReadLimiter, validate(searchTmdbQuerySchema, 'query'), searchMedia);
 mediaRouter.get('/trending', mediaReadLimiter, validate(trendingQuerySchema, 'query'), trendingMedia);
 mediaRouter.get('/popular', mediaReadLimiter, validate(popularQuerySchema, 'query'), popularMedia);
-mediaRouter.get('/details/:provider/:id', mediaReadLimiter, mediaDetails);
+mediaRouter.get(
+  '/details/:provider/:id',
+  mediaReadLimiter,
+  validate(mediaDetailsParamsSchema, 'params'),
+  mediaDetails,
+);
 
-stashRouter.get('/', stashReadLimiter, getStashItems);
+stashRouter.get('/', stashReadLimiter, validate(paginationQuerySchema, 'query'), getStashItems);
 stashRouter.post('/from-provider', stashWriteLimiter, validate(stashItemBodySchema), createStashFromProvider);
-stashRouter.patch('/:id', stashWriteLimiter, validate(updateStashItemSchema), updateStashItem);
-stashRouter.delete('/:id', stashWriteLimiter, deleteStashItem);
+stashRouter.patch(
+  '/:id',
+  stashWriteLimiter,
+  validate(stashItemParamsSchema, 'params'),
+  validate(updateStashItemSchema),
+  updateStashItem,
+);
+stashRouter.delete(
+  '/:id',
+  stashWriteLimiter,
+  validate(stashItemParamsSchema, 'params'),
+  deleteStashItem,
+);

@@ -6,9 +6,6 @@ import { getProvider, tmdbProvider } from '../services/mediaProvider.js';
 import { AppError } from '../utils/AppError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-const DEFAULT_PAGE_SIZE = 50;
-const MAX_PAGE_SIZE = 100;
-
 export function buildStashFields(
   details: MediaDetails,
   type: MediaType,
@@ -89,11 +86,8 @@ export const mediaDetails = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const getStashItems = asyncHandler(async (req: Request, res: Response) => {
-  const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const limit = Math.min(
-    MAX_PAGE_SIZE,
-    Math.max(1, parseInt(req.query.limit as string) || DEFAULT_PAGE_SIZE),
-  );
+  // `validate(paginationQuerySchema, 'query')` guarantees these are numbers.
+  const { page, limit } = req.query as unknown as { page: number; limit: number };
   const skip = (page - 1) * limit;
 
   const [items, total] = await Promise.all([

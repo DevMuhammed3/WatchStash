@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { STATUS_ORDER } from '@watchstash/types';
+import { objectIdSchema } from './common.js';
 
 export const searchTmdbQuerySchema = z.object({
   query: z.string().trim().min(1, 'Search query is required').max(200),
@@ -13,6 +14,17 @@ export const trendingQuerySchema = z.object({
 export const popularQuerySchema = z.object({
   mediaType: z.enum(['movie', 'tv']),
   page: z.coerce.number().int().min(1).max(500).optional().default(1),
+});
+
+export const mediaDetailsParamsSchema = z.object({
+  provider: z.enum(['tmdb']),
+  // TMDB ids are numeric strings, unlike the Mongo ObjectIds used by stash
+  // routes, so this must not use objectIdSchema.
+  id: z.string().regex(/^\d+$/, 'Invalid media ID'),
+});
+
+export const stashItemParamsSchema = z.object({
+  id: objectIdSchema,
 });
 
 export const stashItemBodySchema = z.object({

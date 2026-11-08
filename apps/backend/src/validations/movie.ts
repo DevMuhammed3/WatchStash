@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import { objectIdSchema } from './common.js';
+
+export const movieParamsSchema = z.object({
+  id: objectIdSchema,
+});
 
 export const createMovieSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
